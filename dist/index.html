@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/tinderice/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon-192.png" />
+    <title>tinderice</title>
+    <script type="module" crossorigin src="/tinderice/assets/index-CIISHFPa.js"></script>
+    <link rel="stylesheet" crossorigin href="/tinderice/assets/index-CFMKIrPm.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("sw.js")
+          .then((reg) => console.log("Service Worker registered", reg))
+          .catch((err) =>
+            console.log("Service Worker registration failed", err),
+          );
+      }
+    </script>
+  </body>
+</html>
