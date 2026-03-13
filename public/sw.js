@@ -1,4 +1,4 @@
-const CACHE_NAME = "fastrack-v1";
+const CACHE_NAME = "tinderice-v1";
 const urlsToCache = [
   "./",
   "./index.html",
