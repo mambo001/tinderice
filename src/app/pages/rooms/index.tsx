@@ -17,7 +17,7 @@ const SLIDES = Array.from(Array(SLIDE_COUNT).keys());
 
 const EmblaCarousel = (props: PropType) => {
   const { slides, options } = props;
-  const [emblaRef, emblaApi] = useEmblaCarousel(options, [ClassNames()]);
+  const [emblaRef] = useEmblaCarousel(options, [ClassNames()]);
 
   return (
     <section

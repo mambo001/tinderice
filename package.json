@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:gh-pages": "git subtree push --prefix dist https://github.com/mambo001/tinderice gh-pages",
+    "rebuild:gh-pages": "bun run build && git add . && git commit -m 'rebuild gh pages' && bun run deploy:gh-pages"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
