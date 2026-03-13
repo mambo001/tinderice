@@ -1,20 +1,20 @@
 import * as React from "react";
 import MUIBottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
-import TripOriginOutlinedIcon from "@mui/icons-material/TripOriginOutlined";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import RoomServiceOutlinedIcon from "@mui/icons-material/RoomServiceOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation, useParams } from "react-router";
 import { Paper, Skeleton } from "@mui/material";
 
 const NAV_ITEMS = [
-  { label: "Home", path: "/", icon: <TripOriginOutlinedIcon />, show: true },
-  // {
-  //   label: "Me",
-  //   path: "/profile",
-  //   icon: <AccountCircleOutlinedIcon />,
-  //   show: true,
-  // },
+  { label: "Home", path: "/", icon: <HomeOutlinedIcon />, show: true },
+  {
+    label: "Room",
+    path: "/room",
+    icon: <RoomServiceOutlinedIcon />,
+    show: true,
+  },
   {
     label: "Settings",
     path: "/settings",
@@ -33,15 +33,14 @@ function getNavIndex(pathname: string): number {
 export function BottomNavigation() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  // TODO: get clientId from context instead of app store
-  const clientId = "me";
+  const { roomId = "" } = useParams<{ roomId: string }>();
 
   const value = getNavIndex(pathname);
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     const item = NAV_ITEMS[newValue];
     if (!item) return;
-    const path = item.path === "/profile" ? `/profile/${clientId}` : item.path;
+    const path = item.path === "/room" ? `/room/${roomId}` : item.path;
     navigate(path);
   };
 

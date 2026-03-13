@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   CardActions,
   CardContent,
@@ -9,98 +8,53 @@ import {
   Stack,
   Typography,
   Skeleton,
+  CardActionArea,
 } from "@mui/material";
-import { addHours, format } from "date-fns";
 import type { PropsWithChildren } from "react";
+import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
+import { useNavigate } from "react-router";
 
-import { SplitButton } from "./split-button";
-import { CircularWithValueLabel } from "./progress-bar";
-import { useFastContext } from "../../context";
-
-function endDateFromWindow(date: Date | null, window: number) {
-  return date && addHours(date, window);
-}
-
-function formatNullableDate(date: Date | null) {
-  return date ? format(date, "E, h:mm a") : "";
-}
+const rooms = [
+  {
+    id: "1",
+    name: "Room 1",
+  },
+  {
+    id: "1",
+    name: "Room 2",
+  },
+  {
+    id: "1",
+    name: "Room 3",
+  },
+];
 
 export function Home() {
-  const { currentSession } = useFastContext();
+  const navigate = useNavigate();
 
-  const handleStartFastingClick = () => {
-    currentSession.startSession();
-  };
-
-  const handleStopFastingClick = () => {
-    currentSession.endSession();
+  const handleRoomClick = (roomId: string) => {
+    navigate(`/room/${roomId}`);
   };
 
   return (
     <HomeLayout>
-      <Card
-        sx={{
-          width: "100%",
-          maxWidth: 600,
-          flex: 1,
-        }}
-      >
-        <CardHeader action={<SplitButton />} />
-        <CardContent
-          sx={{
-            display: "flex",
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Stack gap={1}>
-            <Box>
-              <CircularWithValueLabel />
-            </Box>
-            {currentSession.isActive && (
-              <Stack direction="row" gap={4} justifyContent="space-around">
-                <Stack>
-                  <Typography variant="caption" align="center">
-                    Started
-                  </Typography>
-                  <Typography variant="body2" align="center" fontWeight={500}>
-                    {formatNullableDate(currentSession.start)}
-                  </Typography>
-                </Stack>
-                <Stack>
-                  <Typography variant="caption" align="center">
-                    Goal
-                  </Typography>
-                  <Typography variant="body2" align="center" fontWeight={500}>
-                    {formatNullableDate(
-                      endDateFromWindow(
-                        currentSession.start,
-                        currentSession.window,
-                      ),
-                    )}
-                  </Typography>
-                </Stack>
-              </Stack>
-            )}
-          </Stack>
-        </CardContent>
-        <CardActions sx={{ py: 4, justifyContent: "center" }}>
-          {!currentSession.isActive ? (
-            <Button variant="contained" onClick={handleStartFastingClick}>
-              Start Fasting
-            </Button>
-          ) : (
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleStopFastingClick}
-            >
-              Break Fast
-            </Button>
-          )}
-        </CardActions>
-      </Card>
+      <Typography>Rooms</Typography>
+      <Stack gap={1}>
+        <Stack gap={1}>
+          {rooms.map((room) => (
+            <Card key={room.id}>
+              <CardActionArea onClick={() => handleRoomClick(room.id)}>
+                <CardContent>
+                  <Stack justifyContent={"space-between"} direction={"row"}>
+                    <Typography>{room.name}</Typography>
+                    <ChevronRightOutlinedIcon />
+                  </Stack>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          ))}
+        </Stack>
+      </Stack>
     </HomeLayout>
   );
 }
@@ -154,7 +108,7 @@ export function HomeLayout(props: PropsWithChildren) {
         },
       }}
     >
-      <Stack marginTop={6} paddingBottom={4} gap={2} alignItems={"center"}>
+      <Stack marginTop={6} paddingBottom={4} gap={2}>
         {props.children}
       </Stack>
     </Container>

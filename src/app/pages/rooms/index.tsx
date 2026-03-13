@@ -1,8 +1,6 @@
 import { Container, Stack, Typography } from "@mui/material";
 
-import { FastingSessionsTable } from "./table";
-
-export function Profile() {
+export function Room() {
   return (
     <Container
       sx={{
@@ -17,8 +15,9 @@ export function Profile() {
       }}
     >
       <Stack marginTop={6} paddingBottom={4} gap={2}>
-        <Typography variant="body1" fontWeight={500}>Recent sessions</Typography>
-        <FastingSessionsTable />
+        <Typography variant="body1" fontWeight={500}>
+          Recent sessions
+        </Typography>
       </Stack>
     </Container>
   );
