@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Outlet, Route, Routes } from "react-router";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
@@ -8,6 +9,8 @@ import { AppBar, BottomNavigation, BottomNavigationSkeleton } from "./nav";
 import { Home, HomeSkeleton, Room, Settings } from "./pages";
 import { FastProvider } from "./context";
 import { appTheme } from "./theme";
+
+const queryClient = new QueryClient();
 
 const errorBoundaryFallback = <div>Something went wrong</div>;
 
@@ -46,15 +49,17 @@ export function AppInternal() {
 export function App() {
   return (
     <ThemeProvider theme={appTheme}>
-      <ErrorBoundary fallback={errorBoundaryFallback}>
-        <Suspense fallback={<AppSkeleton />}>
-          <HashRouter>
-            <FastProvider>
-              <AppInternal />
-            </FastProvider>
-          </HashRouter>
-        </Suspense>
-      </ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary fallback={errorBoundaryFallback}>
+          <Suspense fallback={<AppSkeleton />}>
+            <HashRouter>
+              <FastProvider>
+                <AppInternal />
+              </FastProvider>
+            </HashRouter>
+          </Suspense>
+        </ErrorBoundary>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
