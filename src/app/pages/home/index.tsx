@@ -38,22 +38,56 @@ export function Home() {
 
   return (
     <HomeLayout>
-      <Typography>Rooms</Typography>
+      <Typography>Quick Actions</Typography>
       <Stack gap={1}>
-        <Stack gap={1}>
-          {rooms.map((room) => (
-            <Card key={room.id}>
-              <CardActionArea onClick={() => handleRoomClick(room.id)}>
-                <CardContent>
-                  <Stack justifyContent={"space-between"} direction={"row"}>
-                    <Typography>{room.name}</Typography>
-                    <ChevronRightOutlinedIcon />
-                  </Stack>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          ))}
-        </Stack>
+        <Card>
+          <CardActionArea onClick={() => console.log("")}>
+            <CardContent>
+              <Stack justifyContent={"space-between"} direction={"row"}>
+                <Typography>Start Instant Poll</Typography>
+                <ChevronRightOutlinedIcon />
+              </Stack>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+        <Card>
+          <CardActionArea onClick={() => console.log("")}>
+            <CardContent>
+              <Stack justifyContent={"space-between"} direction={"row"}>
+                <Typography>Create Room</Typography>
+                <ChevronRightOutlinedIcon />
+              </Stack>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+      </Stack>
+      <Typography>Active Polls</Typography>
+      <Stack gap={1}>
+        <Card>
+          <CardActionArea onClick={() => console.log("")}>
+            <CardContent>
+              <Stack justifyContent={"space-between"} direction={"row"}>
+                <Typography>{`<VOTING_TITLE>-<CATEGORY>`}</Typography>
+                <ChevronRightOutlinedIcon />
+              </Stack>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+      </Stack>
+      <Typography>Recently Joined Rooms</Typography>
+      <Stack gap={1}>
+        {rooms.map((room) => (
+          <Card key={room.name}>
+            <CardActionArea onClick={() => handleRoomClick(room.id)}>
+              <CardContent>
+                <Stack justifyContent={"space-between"} direction={"row"}>
+                  <Typography>{room.name}</Typography>
+                  <ChevronRightOutlinedIcon />
+                </Stack>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        ))}
       </Stack>
     </HomeLayout>
   );
