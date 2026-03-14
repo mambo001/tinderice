@@ -1,0 +1,16 @@
+{
+  "name": "@my-monorepo/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.10",
+    "@tinderice-app/shared": "workspace:*"
+  }
+}

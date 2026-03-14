@@ -17,6 +17,7 @@
       "name": "@my-monorepo/backend",
       "version": "1.0.0",
       "devDependencies": {
+        "@tinderice-app/shared": "workspace:*",
         "bun-types": "^1.3.10",
       },
     },
