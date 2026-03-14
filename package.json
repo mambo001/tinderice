@@ -1,53 +1,18 @@
 {
-  "name": "tinderice",
+  "name": "tinderice-app",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "deploy:gh-pages": "git subtree push --prefix dist https://github.com/mambo001/tinderice gh-pages",
-    "rebuild:gh-pages": "bun run build && git add . && git commit -m 'rebuild gh pages' && bun run deploy:gh-pages"
-  },
-  "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@faker-js/faker": "^10.3.0",
-    "@fontsource/roboto": "^5.2.10",
-    "@mui/icons-material": "^7.3.9",
-    "@mui/material": "^7.3.9",
-    "@mui/styled-engine-sc": "^7.3.9",
-    "@tanstack/react-query": "^5.90.21",
-    "date-fns": "^4.1.0",
-    "dexie": "^4.3.0",
-    "dexie-react-hooks": "^4.2.0",
-    "effect": "^3.19.19",
-    "embla-carousel-class-names": "^8.6.0",
-    "embla-carousel-react": "^8.6.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-error-boundary": "^6.1.1",
-    "react-router": "^7.13.1",
-    "styled-components": "^6.3.11"
+    "dev": "bun run --filter '*' dev",
+    "build": "bun run --filter '*' build",
+    "lint": "bun run --filter '*' lint",
+    "test": "bun run --filter '*' test"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@eslint/js": "^9.39.4",
-    "@rolldown/plugin-babel": "^0.2.0",
-    "@types/babel__core": "^7.20.5",
-    "@types/node": "^24.12.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.0",
-    "babel-plugin-react-compiler": "^1.0.0",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "typescript": "^5.0.0"
   }
 }
