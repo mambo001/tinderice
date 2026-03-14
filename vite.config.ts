@@ -3,11 +3,11 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   build: {
     outDir: "dist",
     assetsDir: "assets",
   },
-  base: mode === "development" ? "/" : "/tinderice/",
+  // base: mode === "development" ? "/" : "/tinderice/",
 }));
