@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Outlet, Route, Routes } from "react-router";
+import { HashRouter, Navigate, Outlet, Route, Routes } from "react-router";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import Box from "@mui/material/Box";
@@ -39,8 +39,9 @@ export function AppInternal() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<Home />} />
-        <Route path="/room/:roomId" element={<Room />} />
+        <Route path="/room/:roomId" index element={<Room />} />
         <Route path="/settings/" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );
