@@ -9,9 +9,7 @@
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
-    "build:web": "bun run build --workspace=apps/web",
-    "build:backend": "bun run build --workspace=apps/backend",
-    "deploy": "bun run build && wrangler deploy --config apps/backend/wrangler.toml",
+    "deploy": "bun run build && wrangler deploy --config apps/backend/wrangler.toml && wrangler deploy --config apps/web/wrangler.toml",
     "lint": "bun run --filter '*' lint",
     "test": "bun run --filter '*' test"
   },
@@ -19,8 +17,10 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "^1.28.0",
     "@cloudflare/workers-types": "^4.20260313.1",
     "effect": "4.0.0-beta.20",
+    "hono": "^4.12.8",
     "wrangler": "^4.73.0"
   }
 }

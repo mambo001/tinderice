@@ -10,7 +10,7 @@ import {
   Skeleton,
   CardActionArea,
 } from "@mui/material";
-import type { PropsWithChildren } from "react";
+import { type PropsWithChildren } from "react";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -19,8 +19,17 @@ const useHelloWorld = () =>
   useQuery({
     queryKey: ["hello-world"],
     queryFn: () =>
-      fetch("http://localhost:8787/")
+      fetch("http://localhost:8787/api")
         .then((res) => res.text())
+        .then((data) => data),
+  });
+
+const useItems = () =>
+  useQuery({
+    queryKey: ["items"],
+    queryFn: () =>
+      fetch("http://localhost:8787/api/items")
+        .then((res) => res.json())
         .then((data) => data),
   });
 
@@ -42,6 +51,11 @@ const rooms = [
 export function Home() {
   const navigate = useNavigate();
   const { data: helloWorldData, isLoading, error } = useHelloWorld();
+  const {
+    data: itemsData,
+    isLoading: isItemsLoading,
+    error: itemsError,
+  } = useItems();
 
   const handleRoomClick = (roomId: string) => {
     navigate(`/room/${roomId}`);
@@ -49,9 +63,15 @@ export function Home() {
 
   return (
     <HomeLayout>
+      <Typography variant="h5">Welcome, {`<someone>`}</Typography>
       <Typography>isLoading: {isLoading && "Loading..."}</Typography>
       <Typography>error: {error?.message}</Typography>
       <Typography>helloWorldData: {helloWorldData}</Typography>
+      <Typography>isItemsLoading: {isItemsLoading && "Loading..."}</Typography>
+      <Typography>itemsError: {itemsError?.message}</Typography>
+      <Typography>
+        {itemsData ? JSON.stringify(itemsData, null, 2) : "No items data"}
+      </Typography>
       <Typography>Quick Actions</Typography>
       <Stack gap={1}>
         <Card>

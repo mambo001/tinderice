@@ -5,8 +5,10 @@
     "": {
       "name": "tinderice-app",
       "dependencies": {
+        "@cloudflare/vite-plugin": "^1.28.0",
         "@cloudflare/workers-types": "^4.20260313.1",
         "effect": "4.0.0-beta.20",
+        "hono": "^4.12.8",
         "wrangler": "^4.73.0",
       },
       "devDependencies": {
@@ -107,6 +109,8 @@
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.4.2", "", {}, "sha512-SIOD2DxrRRwQ+jgzlXCqoEFiKOFqaPjhnNTGKXSRLvp1HiOvapLaFG2kEr9dYQTYe8rKrd9uvDUzmAITeNyaHQ=="],
 
     "@cloudflare/unenv-preset": ["@cloudflare/unenv-preset@2.15.0", "", { "peerDependencies": { "unenv": "2.0.0-rc.24", "workerd": "1.20260301.1 || ~1.20260302.1 || ~1.20260303.1 || ~1.20260304.1 || >1.20260305.0 <2.0.0-0" }, "optionalPeers": ["workerd"] }, "sha512-EGYmJaGZKWl+X8tXxcnx4v2bOZSjQeNI5dWFeXivgX9+YCT69AkzHHwlNbVpqtEUTbew8eQurpyOpeN8fg00nw=="],
+
+    "@cloudflare/vite-plugin": ["@cloudflare/vite-plugin@1.28.0", "", { "dependencies": { "@cloudflare/unenv-preset": "2.15.0", "miniflare": "4.20260312.0", "unenv": "2.0.0-rc.24", "wrangler": "4.73.0", "ws": "8.18.0" }, "peerDependencies": { "vite": "^6.1.0 || ^7.0.0" } }, "sha512-h2idr5fZ5GojyWZOZ506NHaDAVq3zpvcKgk8ZzDLlnHHvOwXZlFDPRf9Kkffv0fe+J6GPn7gVjJxgT0YRXAbew=="],
 
     "@cloudflare/workerd-darwin-64": ["@cloudflare/workerd-darwin-64@1.20260312.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-HUAtDWaqUduS6yasV6+NgsK7qBpP1qGU49ow/Wb117IHjYp+PZPUGReDYocpB4GOMRoQlvdd4L487iFxzdARpw=="],
 
@@ -595,6 +599,8 @@
     "hermes-parser": ["hermes-parser@0.25.1", "", { "dependencies": { "hermes-estree": "0.25.1" } }, "sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA=="],
 
     "hoist-non-react-statics": ["hoist-non-react-statics@3.3.2", "", { "dependencies": { "react-is": "^16.7.0" } }, "sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw=="],
+
+    "hono": ["hono@4.12.8", "", {}, "sha512-VJCEvtrezO1IAR+kqEYnxUOoStaQPGrCmX3j4wDTNOcD1uRPFpGlwQUIW8niPuvHXaTUxeOUl5MMDGrl+tmO9A=="],
 
     "ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 
