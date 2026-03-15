@@ -15,11 +15,13 @@ import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const useHelloWorld = () =>
   useQuery({
     queryKey: ["hello-world"],
     queryFn: () =>
-      fetch("http://localhost:8787/api")
+      fetch(`${API_URL}/api`)
         .then((res) => res.text())
         .then((data) => data),
   });
@@ -28,7 +30,7 @@ const useItems = () =>
   useQuery({
     queryKey: ["items"],
     queryFn: () =>
-      fetch("http://localhost:8787/api/items")
+      fetch(`${API_URL}/api/items`)
         .then((res) => res.json())
         .then((data) => data),
   });
