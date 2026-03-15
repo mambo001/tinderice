@@ -1,26 +1,27 @@
 import { HttpRouter, HttpServer, HttpServerResponse } from "@effect/platform";
-import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
-import { Layer } from "effect";
-import { SampleType } from "@tinderice-app/shared";
+import { Effect, Schema } from "effect";
 
-// Define the router with a single route for the root URL
+import { listen } from "./listen";
+
+// Define the schema for route parameters
+const Params = Schema.Struct({
+  userId: Schema.String,
+  bookId: Schema.String,
+});
+
+// Create a router with a route that captures parameters
 const router = HttpRouter.empty.pipe(
-  HttpRouter.get("/", HttpServerResponse.text("Hello World")),
+  HttpRouter.get("/", HttpServerResponse.text("Hello, World!")),
+  HttpRouter.get(
+    "/users/:userId/books/:bookId",
+    HttpRouter.schemaPathParams(Params).pipe(
+      Effect.flatMap((params) => HttpServerResponse.json(params)),
+    ),
+  ),
 );
 
-// Set up the application server with logging
-const app = router.pipe(HttpServer.serve(), HttpServer.withLogAddress);
+const app = router.pipe(HttpServer.serve());
 
-// Specify the port
-const port = 3000;
+listen(app, 3000);
 
-// Create a server layer with the specified port
-const ServerLive = BunHttpServer.layer({ port });
-
-// Run the application
-BunRuntime.runMain(Layer.launch(Layer.provide(app, ServerLive)));
-
-/*
-Output:
-timestamp=... level=INFO fiber=#0 message="Listening on http://localhost:3000"
-*/
+console.log("Server is running on http://localhost:3000");
