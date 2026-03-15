@@ -13,6 +13,16 @@ import {
 import type { PropsWithChildren } from "react";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+
+const useHelloWorld = () =>
+  useQuery({
+    queryKey: ["hello-world"],
+    queryFn: () =>
+      fetch("http://localhost:8787/")
+        .then((res) => res.text())
+        .then((data) => data),
+  });
 
 const rooms = [
   {
@@ -31,6 +41,7 @@ const rooms = [
 
 export function Home() {
   const navigate = useNavigate();
+  const { data: helloWorldData, isLoading, error } = useHelloWorld();
 
   const handleRoomClick = (roomId: string) => {
     navigate(`/room/${roomId}`);
@@ -38,6 +49,9 @@ export function Home() {
 
   return (
     <HomeLayout>
+      <Typography>isLoading: {isLoading && "Loading..."}</Typography>
+      <Typography>error: {error?.message}</Typography>
+      <Typography>helloWorldData: {helloWorldData}</Typography>
       <Typography>Quick Actions</Typography>
       <Stack gap={1}>
         <Card>

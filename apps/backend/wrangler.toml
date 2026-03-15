@@ -1,0 +1,8 @@
+name = "backend"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# This tells Workers to serve the Vite build output
+[site]
+bucket = "../web/dist"
