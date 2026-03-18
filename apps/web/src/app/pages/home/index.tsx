@@ -178,7 +178,7 @@ export function HomeLayout(props: PropsWithChildren) {
         },
       }}
     >
-      <Stack marginTop={6} paddingBottom={4} gap={2}>
+      <Stack marginTop={6} paddingBottom={8} gap={2}>
         {props.children}
       </Stack>
     </Container>

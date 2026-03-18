@@ -1,28 +1,25 @@
 import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { DatabaseConfig } from "./services/config/db";
+import { Database } from "./services/db";
+import { Users } from "./services/users";
+import { D1Database } from "@cloudflare/workers-types";
 
-class NumberService extends Context.Tag("@app/NumberService")<
-  NumberService,
-  { readonly getNumber: () => Effect.Effect<string> }
->() {
-  static live = Layer.succeed(this, {
-    getNumber: () => {
-      const number = Math.floor(Math.random() * 100);
-      return Effect.succeed(`Your random number is: ${number}`);
-    },
-  });
-}
+type Bindings = {
+  DB: D1Database;
+};
+
+const userServiceLayer = Users.layer.pipe(Layer.provide(Database.layer));
 
 // Build your Effect layer(s)
-const MainLayer = Layer.mergeAll(
-  // add your service layers here
-  NumberService.live,
-);
+const MainLayer = Layer.mergeAll(userServiceLayer);
 
 const runtime = ManagedRuntime.make(MainLayer);
 
-const app = new Hono();
+const app = new Hono<{
+  Bindings: Bindings;
+}>();
 
 app.use(
   "*",
@@ -60,6 +57,16 @@ app.get("/api/items", (c) =>
     Effect.gen(function* () {
       yield* Effect.log("Handling /api/items");
       return c.json({ items: [] });
+    }),
+  ),
+);
+
+app.get("/api/users", (c) =>
+  runtime.runPromise(
+    Effect.gen(function* () {
+      const user = yield* Users..findAll()
+      yield* Effect.log("Handling /api/users");
+      return c.json({ user });
     }),
   ),
 );

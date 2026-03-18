@@ -1,28 +1,41 @@
-// import { Context, Effect, Layer, Redacted, Schema } from "effect"
+import { Context, Data, Effect, Layer } from "effect";
+import { D1Database } from "@cloudflare/workers-types";
 
-// const Port = Schema.NumberFromString.pipe(
-//   Schema.int(),
-//   Schema.between(1, 65535)
-// )
-
-// class DatabaseConfig extends Context.Tag("@app/DatabaseConfig")<
-//   DatabaseConfig,
-//   {
-//     readonly host: string
-//     readonly port: number
-//     readonly database: string
-//     readonly password: Redacted.Redacted
-//   }
-// >() {
-//   static readonly layer = Layer.effect(
-//     DatabaseConfig,
-//     Effect.gen(function* () {
-//       const host = yield* Schema.Config("DB_HOST", Schema.String)
-//       const port = yield* Schema.Config("DB_PORT", Port)
-//       const database = yield* Schema.Config("DB_NAME", Schema.String)
-//       const password = yield* Schema.Config("DB_PASSWORD", Schema.Redacted(Schema.String))
-
-//       return DatabaseConfig.of({ host, port, database, password })
-//     })
-//   )
-// }
+export class Database extends Context.Tag("@app/Database")<
+  Database,
+  {
+    readonly query: (
+      sql: string,
+      params?: unknown[],
+    ) => Effect.Effect<unknown[]>;
+    readonly execute: (sql: string, params?: unknown[]) => Effect.Effect<void>;
+  }
+>() {
+  static readonly layer = Layer.effect(
+    Database,
+    Effect.gen(function* () {
+      // const query = 
+      return Database.of({
+        query: Effect.fn("Database.query")(function* (sql: string, params) {
+        //   const config = yield* Context.get(DatabaseConfig);
+        //   yield* Effect.log(
+        //     `Connecting to database at ${config.host}:${config.port}`,
+        //   );
+          yield* Effect.log(
+            `Executing query: ${sql} with params: ${JSON.stringify(params)}`,
+          );
+          return [];
+        }),
+        execute: Effect.fn("Database.execute")(function* (sql: string, params) {
+        //   const config = yield* Context.get(DatabaseConfig);
+        //   yield* Effect.log(
+        //     `Connecting to database at ${config.host}:${config.port}`,
+        //   );
+          yield* Effect.log(
+            `Executing command: ${sql} with params: ${JSON.stringify(params)}`,
+          );
+        }),
+      });
+    }),
+  );
+}

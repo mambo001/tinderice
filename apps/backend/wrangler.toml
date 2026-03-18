@@ -1,3 +1,8 @@
 name = "tinderice-api"
 main = "./src/index.ts"
 compatibility_date = "2026-03-15"
+
+[[d1_databases]]
+binding = "Tinderice"
+database_name = "Tinderice"
+database_id = "2d11161a-e64c-47e3-8b9a-d652b86d3048"

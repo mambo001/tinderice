@@ -9,6 +9,7 @@ import { AppBar, BottomNavigation, BottomNavigationSkeleton } from "./nav";
 import { Home, HomeSkeleton, Room, Settings } from "./pages";
 import { FastProvider } from "./context";
 import { appTheme } from "./theme";
+import { useIdentity } from "@/hooks";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ export function AppInternal() {
 }
 
 export function App() {
+  const userId = useIdentity();
   return (
     <ThemeProvider theme={appTheme}>
       <QueryClientProvider client={queryClient}>
