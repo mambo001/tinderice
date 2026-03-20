@@ -8,7 +8,10 @@
     "build": "tsc --noEmit",
     "start": "bun run dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate:local": "wrangler d1 migrations apply Tinderice --local",
+    "db:migrate:remote": "wrangler d1 migrations apply Tinderice --remote",
+    "db:migrate:create": "wrangler d1 migrations create Tinderice"
   },
   "devDependencies": {
     "bun-types": "^1.3.10",
