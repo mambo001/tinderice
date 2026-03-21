@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
   clientId TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   email TEXT,
-  createdAt TEXT NOT NULL DEFAULT (datetime('now')),
-  updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
