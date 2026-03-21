@@ -1,7 +1,7 @@
 import { Layer } from "effect";
 
 import { D1UserRepositoryLive } from "./infra/repositories/cloudflare";
-import { D1DatabaseTag } from "./shared/config/env";
+import { makeD1Layer } from "./shared/config/env";
 import type { Env } from "./shared/config/env";
 import { UserService } from "./application/services";
 
@@ -9,7 +9,7 @@ import { UserService } from "./application/services";
 // Called once per request since D1 is request-scoped.
 export const makeAppLayer = (env: Env) => {
   // Provide the raw D1 binding into the Effect context
-  const D1Live = Layer.succeed(D1DatabaseTag, env.DB);
+  const D1Live = makeD1Layer(env);
 
   // Infrastructure layers — each implements a port interface
   const RepositoryLayer = Layer.mergeAll(D1UserRepositoryLive).pipe(
