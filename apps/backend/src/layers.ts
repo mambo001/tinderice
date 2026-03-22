@@ -3,7 +3,6 @@ import { Layer } from "effect";
 import { D1UserRepositoryLive } from "./infra/repositories/cloudflare";
 import { makeD1Layer } from "./shared/config/env";
 import type { Env } from "./shared/config/env";
-import { UserService } from "./application/services";
 
 // Builds the full application layer from a Cloudflare Env binding.
 // Called once per request since D1 is request-scoped.
@@ -17,12 +16,10 @@ export const makeAppLayer = (env: Env) => {
   );
 
   // Application layer — depends on infrastructure ports
-  const AppServiceLayer = UserService.Default.pipe(
-    Layer.provide(Layer.mergeAll(RepositoryLayer)),
-  );
+  const AppServiceLayer = Layer.mergeAll(RepositoryLayer);
 
   return Layer.mergeAll(AppServiceLayer, RepositoryLayer);
 };
 
-// The services provided by the app layer (e.g. UserRepository | UserService)
+// The services provided by the app layer (e.g. UserRepository)
 export type AppServices = Layer.Layer.Success<ReturnType<typeof makeAppLayer>>;

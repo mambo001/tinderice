@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 
-import { createUser } from "@/application/use-cases/create-user";
 import { runEffect } from "../../app";
 import { CreateUserDto } from "../dto";
 import type { Env } from "../../shared/config/env";
 import { findById } from "@/application/queries";
+import { createUser } from "@/application/commands";
 
 export const userRoutes = new Hono<{ Bindings: Env }>();
 
