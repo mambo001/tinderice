@@ -1,2 +1,2 @@
 export * from './user-repository'
-export * from './id-generator'
+export * from './user-id-generator'

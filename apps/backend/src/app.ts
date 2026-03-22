@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { Effect, ManagedRuntime } from "effect";
 
-import { userRoutes } from "./interface/routes/users";
+import { userRoutes } from "@/interface/routes";
+import type { Env } from "@/shared/config";
 import { makeAppLayer, type AppServices } from "./layers";
-import type { Env } from "./shared/config/env";
 
 const app = new Hono<{ Bindings: Env }>();
 

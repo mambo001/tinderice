@@ -2,7 +2,7 @@ import { Effect, ParseResult, Schema } from "effect";
 
 import { User } from "@/domain/entities/user";
 import { DatabaseError } from "@/domain/errors";
-import { UserRepository } from "@/domain/ports/user-repository";
+import { UserRepository, UserIdGenerator } from "@/domain/ports";
 
 export const CreateUserInput = Schema.Struct({
   name: Schema.String,
@@ -35,10 +35,11 @@ export function createUser(
 ): Effect.Effect<
   CreateUserOutput,
   DatabaseError | ParseResult.ParseError,
-  UserRepository
+  UserRepository | UserIdGenerator
 > {
   return Effect.gen(function* () {
     const repo = yield* UserRepository;
+    const idGenerator = yield* UserIdGenerator;
     const now = new Date();
 
     // const existing = yield* repo.findById(UserId.make({id: input.name}))
@@ -48,8 +49,10 @@ export function createUser(
     //   );
     // }
 
+    const id = yield* idGenerator.next();
+
     const user = User.make({
-      id: crypto.randomUUID(),
+      id,
       clientId: input.clientId,
       name: input.name,
       email: input.email,
