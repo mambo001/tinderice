@@ -1,11 +1,10 @@
 import { Hono } from "hono";
-import { Effect } from "effect";
 
-import { UserService } from "@/application/services";
 import { createUser } from "@/application/use-cases/create-user";
 import { runEffect } from "../../app";
 import { CreateUserDto } from "../dto";
 import type { Env } from "../../shared/config/env";
+import { findById } from "@/application/queries";
 
 export const userRoutes = new Hono<{ Bindings: Env }>();
 
@@ -33,10 +32,7 @@ userRoutes.post("/", async (c) => {
 userRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
 
-  const user = await runEffect(
-    c,
-    Effect.flatMap(UserService, (svc) => svc.findByid(id)),
-  );
+  const user = await runEffect(c, findById(id));
 
   return c.json(user);
 });

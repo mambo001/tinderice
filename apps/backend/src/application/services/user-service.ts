@@ -8,18 +8,6 @@ export class UserService extends Effect.Service<UserService>()("UserService", {
     const repo = yield* UserRepository;
 
     return {
-      findById: (id: string) =>
-        Effect.gen(function* () {
-          const user = yield* repo.findById(id);
-
-          if (!user) {
-            throw new UserNotFoundError({
-              message: `User with id ${id} not found`,
-            });
-          }
-
-          return user;
-        }),
       save: (user: User) => repo.save(user),
       delete: (id: string) => repo.delete(id),
     };
