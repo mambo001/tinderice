@@ -1,12 +1,11 @@
 import { Context, Effect, ParseResult } from "effect";
 
 import { User } from "@/domain/entities";
-import { UserId } from "@/domain/entities/user-id.value";
 import { DatabaseError, UserNotFoundError } from "@/domain/errors";
 
 export interface UserRepository {
   readonly findById: (
-    id: UserId,
+    id: string,
   ) => Effect.Effect<
     User,
     UserNotFoundError | DatabaseError | ParseResult.ParseError
@@ -14,7 +13,7 @@ export interface UserRepository {
   readonly save: (
     user: User,
   ) => Effect.Effect<void, DatabaseError | ParseResult.ParseError>;
-  readonly delete: (id: UserId) => Effect.Effect<void, DatabaseError>;
+  readonly delete: (id: string) => Effect.Effect<void, DatabaseError>;
 }
 
 export const UserRepository =

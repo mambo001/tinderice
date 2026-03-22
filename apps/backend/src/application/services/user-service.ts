@@ -1,7 +1,6 @@
 import { Effect, Context, Layer } from "effect";
 import { UserRepository } from "../../domain/ports/user-repository";
 import { User } from "../../domain/entities/user";
-import { UserId } from "../../domain/entities";
 import { UserNotFoundError } from "../../domain/errors";
 
 export class UserService extends Effect.Service<UserService>()("UserService", {
@@ -9,7 +8,7 @@ export class UserService extends Effect.Service<UserService>()("UserService", {
     const repo = yield* UserRepository;
 
     return {
-      findByid: (id: UserId) =>
+      findById: (id: string) =>
         Effect.gen(function* () {
           const user = yield* repo.findById(id);
 
@@ -22,7 +21,7 @@ export class UserService extends Effect.Service<UserService>()("UserService", {
           return user;
         }),
       save: (user: User) => repo.save(user),
-      delete: (id: UserId) => repo.delete(id),
+      delete: (id: string) => repo.delete(id),
     };
   }),
   dependencies: [Layer.service(UserRepository)],
