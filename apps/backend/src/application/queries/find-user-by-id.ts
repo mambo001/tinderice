@@ -2,7 +2,7 @@ import { UserNotFoundError } from "@/domain/errors";
 import { UserRepository } from "@/domain/ports";
 import { Effect } from "effect";
 
-export function findById(id: string) {
+export function findByUserId(id: string) {
   return Effect.gen(function* () {
     const repo = yield* UserRepository;
     const user = yield* repo.findById(id);
