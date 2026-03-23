@@ -14,6 +14,10 @@ export class UserAlreadyExistsError extends Data.TaggedError(
   message?: string;
 }> {}
 
+export class RoomNotFoundError extends Data.TaggedError("RoomNotFoundError")<{
+  message?: string;
+}> {}
+
 export class DatabaseError extends Data.TaggedError("DatabaseError")<{
   message?: string;
 }> {}

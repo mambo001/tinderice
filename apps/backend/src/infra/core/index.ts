@@ -7,8 +7,13 @@ import {
   animals,
 } from "unique-names-generator";
 
-import { UserIdGenerator, UsernameGenerator } from "@/domain/ports";
+import {
+  RoomIdGenerator,
+  UserIdGenerator,
+  UsernameGenerator,
+} from "@/domain/ports";
 import { makeUserId } from "@/domain/value-objects/user-id";
+import { makeRoomId } from "@/domain/value-objects";
 
 export const UserIdGeneratorLive = Layer.succeed(UserIdGenerator, {
   next: () =>
@@ -23,10 +28,17 @@ export const UsernameGeneratorLive = Layer.succeed(UsernameGenerator, {
       const customConfig: Config = {
         dictionaries: [adjectives, colors, animals],
         separator: "-",
-        style: 'capital'
+        style: "capital",
       };
 
       const name: string = uniqueNamesGenerator(customConfig);
       return name;
+    }),
+});
+
+export const RoomIdGeneratorLive = Layer.succeed(RoomIdGenerator, {
+  next: () =>
+    Effect.sync(() => {
+      return makeRoomId(crypto.randomUUID());
     }),
 });

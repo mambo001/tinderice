@@ -1,0 +1,20 @@
+import { Context, Effect, ParseResult } from "effect";
+
+import { Room } from "@/domain/entities";
+import { DatabaseError, RoomNotFoundError } from "@/domain/errors";
+
+export interface RoomRepository {
+  readonly findById: (
+    id: string,
+  ) => Effect.Effect<
+    Room,
+    RoomNotFoundError | DatabaseError | ParseResult.ParseError
+  >;
+  readonly save: (
+    room: Room,
+  ) => Effect.Effect<void, DatabaseError | ParseResult.ParseError>;
+  readonly delete: (id: string) => Effect.Effect<void, DatabaseError>;
+}
+
+export const RoomRepository =
+  Context.GenericTag<RoomRepository>("RoomRepository");
