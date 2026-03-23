@@ -56,6 +56,7 @@ userRoutes.get("/client-id", async (c) => {
   const rawHeaders = {
     clientId: c.req.header("X-Client-ID"),
   };
+  console.log(`request: ${c.req}`);
   const program = Effect.gen(function* () {
     const headers =
       yield* Schema.decodeUnknown(CheckClientIdHeaders)(rawHeaders);
