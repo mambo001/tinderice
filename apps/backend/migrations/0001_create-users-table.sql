@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS users (
   updatedAt INTEGER
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_client_id ON users(clientId);
