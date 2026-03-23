@@ -2,7 +2,7 @@ import { Layer } from "effect";
 
 import { D1UserRepositoryLive } from "@/infra/cloudflare";
 import { makeD1Layer, type Env } from "@/shared/config";
-import { UserIdGeneratorLive } from "@/infra/core";
+import { UserIdGeneratorLive, UsernameGeneratorLive } from "@/infra/core";
 
 // Builds the full application layer from a Cloudflare Env binding.
 // Called once per request since D1 is request-scoped.
@@ -16,7 +16,11 @@ export const makeAppLayer = (env: Env) => {
   );
 
   // Application layer — depends on infrastructure ports
-  const AppServiceLayer = Layer.mergeAll(RepositoryLayer, UserIdGeneratorLive);
+  const AppServiceLayer = Layer.mergeAll(
+    RepositoryLayer,
+    UserIdGeneratorLive,
+    UsernameGeneratorLive,
+  );
 
   return Layer.mergeAll(AppServiceLayer, RepositoryLayer);
 };
