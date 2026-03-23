@@ -30,4 +30,4 @@ dist-ssr
 
 .wrangler
 .dev.vars*
-.env
+.env*
