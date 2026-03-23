@@ -2,7 +2,7 @@ import { cors } from "hono/cors";
 
 export const corsMiddleware = cors({
   origin: [
-    "https://tinderice-web.reubenmark.workers.dev",
+    "https://tinderice.reubenmark.workers.dev",
     "http://localhost:5173",
   ],
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
