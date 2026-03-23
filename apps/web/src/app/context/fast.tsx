@@ -8,9 +8,9 @@ import {
 import { addMilliseconds } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
 
-import { FastingWindow, type Session } from "../types";
-import { db } from "../dexie/db";
-import { HOUR_IN_MS } from "./contants";
+import { FastingWindow, type Session } from "../../types";
+import { db } from "../../dexie/db";
+import { HOUR_IN_MS } from "../contants";
 
 interface FastSession {
   id: string;

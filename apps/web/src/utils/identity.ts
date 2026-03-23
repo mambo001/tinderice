@@ -1,8 +1,8 @@
-export function getOrCreateUserId() {
-  let userId = localStorage.getItem("user_id");
-  if (!userId) {
-    userId = crypto.randomUUID();
-    localStorage.setItem("user_id", userId);
+export function getOrCreateClientId() {
+  let clientId = localStorage.getItem("client_id");
+  if (!clientId) {
+    clientId = crypto.randomUUID();
+    localStorage.setItem("client_id", clientId);
   }
-  return userId;
+  return clientId;
 }

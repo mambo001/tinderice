@@ -7,9 +7,9 @@ import { ThemeProvider } from "@mui/material";
 
 import { AppBar, BottomNavigation, BottomNavigationSkeleton } from "./nav";
 import { Home, HomeSkeleton, Room, Settings } from "./pages";
-import { FastProvider } from "./context";
+import { FastProvider } from "./context/fast";
 import { appTheme } from "./theme";
-import { useIdentity } from "@/hooks";
+import { IdentityContextProvider } from "./context/identity";
 
 const queryClient = new QueryClient();
 
@@ -49,17 +49,18 @@ export function AppInternal() {
 }
 
 export function App() {
-  const userId = useIdentity();
   return (
     <ThemeProvider theme={appTheme}>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary fallback={errorBoundaryFallback}>
           <Suspense fallback={<AppSkeleton />}>
-            <HashRouter>
-              <FastProvider>
-                <AppInternal />
-              </FastProvider>
-            </HashRouter>
+            <IdentityContextProvider>
+              <HashRouter>
+                <FastProvider>
+                  <AppInternal />
+                </FastProvider>
+              </HashRouter>
+            </IdentityContextProvider>
           </Suspense>
         </ErrorBoundary>
       </QueryClientProvider>

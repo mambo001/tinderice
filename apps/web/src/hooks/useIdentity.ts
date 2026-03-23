@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import { getOrCreateUserId } from "../utils/identity";
+import { getOrCreateClientId } from "../utils/identity";
 
 export function useIdentity() {
-  const [userId] = useState(() => getOrCreateUserId());
-  return userId;
+  const [clientId] = useState(() => getOrCreateClientId());
+  return clientId;
 }

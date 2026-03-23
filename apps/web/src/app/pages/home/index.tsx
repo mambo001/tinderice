@@ -13,27 +13,8 @@ import {
 import { type PropsWithChildren } from "react";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import { useNavigate } from "react-router";
-import { useQuery } from "@tanstack/react-query";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-const useHelloWorld = () =>
-  useQuery({
-    queryKey: ["hello-world"],
-    queryFn: () =>
-      fetch(`${API_URL}/api`)
-        .then((res) => res.text())
-        .then((data) => data),
-  });
-
-const useItems = () =>
-  useQuery({
-    queryKey: ["items"],
-    queryFn: () =>
-      fetch(`${API_URL}/api/items`)
-        .then((res) => res.json())
-        .then((data) => data),
-  });
+import { useIdentityContext } from "@/app/context/identity";
 
 const rooms = [
   {
@@ -52,12 +33,7 @@ const rooms = [
 
 export function Home() {
   const navigate = useNavigate();
-  const { data: helloWorldData, isLoading, error } = useHelloWorld();
-  const {
-    data: itemsData,
-    isLoading: isItemsLoading,
-    error: itemsError,
-  } = useItems();
+  const { identity } = useIdentityContext();
 
   const handleRoomClick = (roomId: string) => {
     navigate(`/room/${roomId}`);
@@ -65,14 +41,8 @@ export function Home() {
 
   return (
     <HomeLayout>
-      <Typography variant="h5">Welcome, {`<someone>`}</Typography>
-      <Typography>isLoading: {isLoading && "Loading..."}</Typography>
-      <Typography>error: {error?.message}</Typography>
-      <Typography>helloWorldData: {helloWorldData}</Typography>
-      <Typography>isItemsLoading: {isItemsLoading && "Loading..."}</Typography>
-      <Typography>itemsError: {itemsError?.message}</Typography>
-      <Typography>
-        {itemsData ? JSON.stringify(itemsData, null, 2) : "No items data"}
+      <Typography variant="h5">
+        Welcome, {identity ? identity.name : `<someone>`}
       </Typography>
       <Typography>Quick Actions</Typography>
       <Stack gap={1}>
