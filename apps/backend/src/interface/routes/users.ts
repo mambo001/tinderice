@@ -4,7 +4,7 @@ import { Effect, Schema } from "effect";
 import { runEffect } from "../../app";
 import type { Env } from "@/shared/config";
 import { findByUserId } from "@/application/queries";
-import { createUser } from "@/application/commands";
+import { createUser, findOrCreateUser } from "@/application/commands";
 import { UserId } from "@/domain/value-objects";
 
 const CreateUserBody = Schema.Struct({
@@ -18,6 +18,10 @@ const CreateUserHeaders = Schema.Struct({
 
 const GetUserParams = Schema.Struct({
   id: UserId,
+});
+
+const CheckClientIdHeaders = Schema.Struct({
+  clientId: Schema.NonEmptyString,
 });
 
 const decodeCreateUserBody = Schema.decodeUnknown(CreateUserBody);
@@ -46,6 +50,21 @@ userRoutes.post("/", async (c) => {
   const user = await runEffect(c, program);
 
   return c.json(user, 201);
+});
+
+userRoutes.get("/client-id", async (c) => {
+  const rawHeaders = {
+    clientId: c.req.header("X-Client-ID"),
+  };
+  const program = Effect.gen(function* () {
+    const headers =
+      yield* Schema.decodeUnknown(CheckClientIdHeaders)(rawHeaders);
+    return yield* findOrCreateUser({ clientId: headers.clientId });
+  });
+
+  const user = await runEffect(c, program);
+
+  return c.json(user);
 });
 
 userRoutes.get("/:id", async (c) => {
