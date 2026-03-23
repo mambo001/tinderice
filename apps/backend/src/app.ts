@@ -9,7 +9,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 // app.use("*", authMiddleware)
 
-app.route("/users", userRoutes);
+app.route("/user", userRoutes);
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
