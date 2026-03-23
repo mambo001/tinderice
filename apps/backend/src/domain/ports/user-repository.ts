@@ -10,6 +10,12 @@ export interface UserRepository {
     User,
     UserNotFoundError | DatabaseError | ParseResult.ParseError
   >;
+  readonly findByClientId: (
+    id: string,
+  ) => Effect.Effect<
+    User,
+    UserNotFoundError | DatabaseError | ParseResult.ParseError
+  >;
   readonly save: (
     user: User,
   ) => Effect.Effect<void, DatabaseError | ParseResult.ParseError>;

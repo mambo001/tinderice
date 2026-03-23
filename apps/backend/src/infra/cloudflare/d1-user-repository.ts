@@ -44,6 +44,29 @@ export const D1UserRepositoryLive = Layer.effect(
         return yield* Schema.decodeUnknown(User)(row);
       });
 
+    const findByClientId = (id: string) =>
+      Effect.gen(function* () {
+        const row = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare("SELECT * FROM users WHERE clientId = ?")
+              .bind(id)
+              .first<UserRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query user by ID: ${err}`,
+            }),
+        });
+        if (!row) {
+          return yield* Effect.fail(
+            new UserNotFoundError({
+              message: `User with ID ${id} not found`,
+            }),
+          );
+        }
+        return yield* Schema.decodeUnknown(User)(row);
+      });
+
     const saveUser = (user: User) =>
       Effect.gen(function* () {
         const encoded = yield* encodeUser(user);
@@ -89,6 +112,7 @@ export const D1UserRepositoryLive = Layer.effect(
 
     return UserRepository.of({
       findById,
+      findByClientId,
       save: saveUser,
       delete: deleteUser,
     });
