@@ -8,12 +8,13 @@ import {
 } from "unique-names-generator";
 
 import {
+  PollIdGenerator,
   RoomIdGenerator,
   UserIdGenerator,
   UsernameGenerator,
 } from "@/domain/ports";
+import { makePollId, makeRoomId } from "@/domain/value-objects";
 import { makeUserId } from "@/domain/value-objects/user-id";
-import { makeRoomId } from "@/domain/value-objects";
 
 export const UserIdGeneratorLive = Layer.succeed(UserIdGenerator, {
   next: () =>
@@ -40,5 +41,12 @@ export const RoomIdGeneratorLive = Layer.succeed(RoomIdGenerator, {
   next: () =>
     Effect.sync(() => {
       return makeRoomId(crypto.randomUUID());
+    }),
+});
+
+export const PollIdGeneratorLive = Layer.succeed(PollIdGenerator, {
+  next: () =>
+    Effect.sync(() => {
+      return makePollId(crypto.randomUUID());
     }),
 });

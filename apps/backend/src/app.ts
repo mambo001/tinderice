@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Effect, ManagedRuntime } from "effect";
 
-import { roomRoutes, userRoutes } from "@/interface/routes";
+import { roomRoutes, userRoutes, pollRoutes } from "@/interface/routes";
 import type { Env } from "@/shared/config";
 import { makeAppLayer, type AppServices } from "./layers";
 import { corsMiddleware } from "./interface/middleware/cors";
@@ -9,11 +9,13 @@ import { corsMiddleware } from "./interface/middleware/cors";
 const app = new Hono<{ Bindings: Env }>();
 
 // app.use("*", authMiddleware)
-app.use("*", corsMiddleware)
+app.use("*", corsMiddleware);
 
 app.route("/user", userRoutes);
 
 app.route("/room", roomRoutes);
+
+app.route("/poll", pollRoutes);
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 

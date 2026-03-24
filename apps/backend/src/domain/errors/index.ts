@@ -18,6 +18,10 @@ export class RoomNotFoundError extends Data.TaggedError("RoomNotFoundError")<{
   message?: string;
 }> {}
 
+export class PollNotFoundError extends Data.TaggedError("PollNotFoundError")<{
+  message?: string;
+}> {}
+
 export class DatabaseError extends Data.TaggedError("DatabaseError")<{
   message?: string;
 }> {}
