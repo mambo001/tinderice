@@ -4,3 +4,6 @@ export * from "./find-room-by-id";
 export * from "./find-rooms-by-owner-id";
 export * from "./find-rooms-by-member-id";
 export * from "./find-by-poll-id";
+export * from "./find-polls-by-room-id";
+export * from "./find-poll-dishes-by-poll-id";
+export * from "./find-poll-responses-by-poll-id";

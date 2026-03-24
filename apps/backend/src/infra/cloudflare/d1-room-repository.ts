@@ -162,6 +162,23 @@ export const D1RoomRepositoryLive = Layer.effect(
         });
       });
 
+    const addMember = (roomId: string, userId: string) =>
+      Effect.gen(function* () {
+        yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                "INSERT OR IGNORE INTO room_members (roomId, userId) VALUES (?, ?)",
+              )
+              .bind(roomId, userId)
+              .run(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to add room member: ${err}`,
+            }),
+        });
+      });
+
     const deleteRoom = (id: string) =>
       Effect.gen(function* () {
         yield* Effect.tryPromise({
@@ -178,6 +195,7 @@ export const D1RoomRepositoryLive = Layer.effect(
       findById,
       findByOwnerId,
       findByMemberId,
+      addMember,
       save: saveRoom,
       delete: deleteRoom,
     });

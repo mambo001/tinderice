@@ -1,27 +1,62 @@
 import { Effect, Layer, Schema } from "effect";
 
-import { Poll } from "@/domain/entities";
+import { Poll, PollDish, PollResponse } from "@/domain/entities";
 import { PollRepository } from "@/domain/ports";
-import { DatabaseError, PollNotFoundError } from "@/domain/errors";
+import {
+  DatabaseError,
+  PollGameplayError,
+  PollNotFoundError,
+} from "@/domain/errors";
+import { pollReaction } from "@/domain/value-objects";
 import { D1DatabaseTag } from "@/shared/config/env";
 
 interface PollRow {
   id: string;
+  roomId: string;
   ownerId: string;
   title: string;
   participants: string;
   winnerDishId: string | null;
   startedAt: number;
+  deadlineAt: number;
   endedAt: number | null;
   isActive: number | boolean;
 }
 
+interface PollDishRow {
+  pollId: string;
+  dishId: string;
+  dishName: string;
+  imageUrl: string;
+  position: number;
+}
+
+interface PollResponseRow {
+  pollId: string;
+  dishId: string;
+  userId: string;
+  reaction: string;
+  respondedAt: number;
+}
+
 const encodePoll = Schema.encode(Poll);
+const encodePollDish = Schema.encode(PollDish);
+const encodePollResponse = Schema.encode(PollResponse);
 
 export const D1PollRepositoryLive = Layer.effect(
   PollRepository,
   Effect.gen(function* () {
     const db = yield* D1DatabaseTag;
+
+    const decodePollRows = Schema.decodeUnknown(Schema.Array(Poll));
+    const decodePollDishRows = Schema.decodeUnknown(Schema.Array(PollDish));
+    const decodePollResponseRows = Schema.decodeUnknown(Schema.Array(PollResponse));
+
+    const toPoll = (row: PollRow) => ({
+      ...row,
+      participants: JSON.parse(row.participants) as string[],
+      isActive: row.isActive === true || row.isActive === 1,
+    });
 
     const findById = (id: string) =>
       Effect.gen(function* () {
@@ -31,6 +66,7 @@ export const D1PollRepositoryLive = Layer.effect(
               .prepare(
                 `SELECT
                   polls.id,
+                  polls.roomId,
                   polls.ownerId,
                   polls.title,
                   COALESCE((
@@ -40,6 +76,7 @@ export const D1PollRepositoryLive = Layer.effect(
                   ), json('[]')) AS participants,
                   polls.winnerDishId,
                   polls.startedAt,
+                  polls.deadlineAt,
                   polls.endedAt,
                   polls.isActive
                 FROM polls
@@ -52,6 +89,7 @@ export const D1PollRepositoryLive = Layer.effect(
               message: `Failed to query poll by ID: ${err}`,
             }),
         });
+
         if (!row) {
           return yield* Effect.fail(
             new PollNotFoundError({
@@ -59,11 +97,87 @@ export const D1PollRepositoryLive = Layer.effect(
             }),
           );
         }
-        return yield* Schema.decodeUnknown(Poll)({
-          ...row,
-          participants: JSON.parse(row.participants) as string[],
-          isActive: row.isActive === true || row.isActive === 1,
+
+        return yield* Schema.decodeUnknown(Poll)(toPoll(row));
+      });
+
+    const findByRoomId = (roomId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT
+                  polls.id,
+                  polls.roomId,
+                  polls.ownerId,
+                  polls.title,
+                  COALESCE((
+                    SELECT json_group_array(poll_participants.userId)
+                    FROM poll_participants
+                    WHERE poll_participants.pollId = polls.id
+                  ), json('[]')) AS participants,
+                  polls.winnerDishId,
+                  polls.startedAt,
+                  polls.deadlineAt,
+                  polls.endedAt,
+                  polls.isActive
+                FROM polls
+                WHERE polls.roomId = ?
+                ORDER BY polls.startedAt DESC`,
+              )
+              .bind(roomId)
+              .all<PollRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query polls by room ID: ${err}`,
+            }),
         });
+
+        return yield* decodePollRows(rows.results.map(toPoll));
+      });
+
+    const findDishesByPollId = (pollId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT pollId, dishId, dishName, imageUrl, position
+                 FROM poll_dishes
+                 WHERE pollId = ?
+                 ORDER BY position ASC`,
+              )
+              .bind(pollId)
+              .all<PollDishRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query poll dishes: ${err}`,
+            }),
+        });
+
+        return yield* decodePollDishRows(rows.results);
+      });
+
+    const findResponsesByPollId = (pollId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT pollId, dishId, userId, reaction, respondedAt
+                 FROM poll_responses
+                 WHERE pollId = ?`,
+              )
+              .bind(pollId)
+              .all<PollResponseRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query poll responses: ${err}`,
+            }),
+        });
+
+        return yield* decodePollResponseRows(rows.results);
       });
 
     const savePoll = (poll: Poll) =>
@@ -76,20 +190,24 @@ export const D1PollRepositoryLive = Layer.effect(
                 .prepare(
                   `INSERT INTO polls (
                     id,
+                    roomId,
                     ownerId,
                     title,
                     winnerDishId,
                     startedAt,
+                    deadlineAt,
                     endedAt,
                     isActive
-                  ) VALUES (?, ?, ?, ?, ?, ?, ?)` ,
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 )
                 .bind(
                   encoded.id,
+                  encoded.roomId,
                   encoded.ownerId,
                   encoded.title,
                   encoded.winnerDishId,
                   encoded.startedAt,
+                  encoded.deadlineAt,
                   encoded.endedAt,
                   encoded.isActive,
                 ),
@@ -109,11 +227,191 @@ export const D1PollRepositoryLive = Layer.effect(
         });
       });
 
-    const deletePoll = (id: string) =>
+    const saveDishes = (pollId: string, dishes: readonly PollDish[]) =>
+      Effect.gen(function* () {
+        const encodedDishes = yield* Effect.forEach(dishes, (dish) => encodePollDish(dish));
+
+        yield* Effect.tryPromise({
+          try: async () => {
+            await db.batch(
+              encodedDishes.map((dish) =>
+                db
+                  .prepare(
+                    `INSERT INTO poll_dishes (pollId, dishId, dishName, imageUrl, position)
+                     VALUES (?, ?, ?, ?, ?)`,
+                  )
+                  .bind(pollId, dish.dishId, dish.dishName, dish.imageUrl, dish.position),
+              ),
+            );
+          },
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to save poll dishes: ${err}`,
+            }),
+        });
+      });
+
+    const addParticipant = (pollId: string, userId: string) =>
       Effect.gen(function* () {
         yield* Effect.tryPromise({
           try: () =>
-            db.prepare("DELETE FROM polls WHERE id = ?").bind(id).run(),
+            db
+              .prepare(
+                "INSERT OR IGNORE INTO poll_participants (pollId, userId) VALUES (?, ?)",
+              )
+              .bind(pollId, userId)
+              .run(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to add poll participant: ${err}`,
+            }),
+        });
+      });
+
+    const upsertResponse = (response: PollResponse) =>
+      Effect.gen(function* () {
+        const encoded = yield* encodePollResponse(response);
+
+        yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `INSERT INTO poll_responses (pollId, dishId, userId, reaction, respondedAt)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON CONFLICT(pollId, dishId, userId)
+                 DO UPDATE SET reaction = excluded.reaction, respondedAt = excluded.respondedAt`,
+              )
+              .bind(
+                encoded.pollId,
+                encoded.dishId,
+                encoded.userId,
+                encoded.reaction,
+                encoded.respondedAt,
+              )
+              .run(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to save poll response: ${err}`,
+            }),
+        });
+      });
+
+    const finish = (pollId: string, winnerDishId: string | null, endedAt: Date) =>
+      Effect.gen(function* () {
+        yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `UPDATE polls
+                 SET winnerDishId = ?, endedAt = ?, isActive = FALSE
+                 WHERE id = ?`,
+              )
+              .bind(winnerDishId, endedAt.getTime(), pollId)
+              .run(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to finish poll: ${err}`,
+            }),
+        });
+      });
+
+    const computeWinner = (pollId: string) =>
+      Effect.gen(function* () {
+        const poll = yield* findById(pollId).pipe(
+          Effect.mapError(
+            (error) =>
+              error instanceof PollNotFoundError
+                ? new PollGameplayError({ message: error.message })
+                : error,
+          ),
+        );
+        const dishes = yield* findDishesByPollId(pollId);
+        const responses = yield* findResponsesByPollId(pollId);
+
+        if (dishes.length === 0) {
+          return yield* Effect.fail(
+            new PollGameplayError({
+              message: `Poll ${pollId} has no dishes assigned`,
+            }),
+          );
+        }
+
+        const minPositiveCount = Math.max(1, Math.ceil(poll.participants.length * 0.4));
+        const scoreByReaction: Record<string, number> = {
+          [pollReaction.dislike]: -1,
+          [pollReaction.like]: 1,
+          [pollReaction.superLike]: 3,
+          [pollReaction.skip]: 0,
+        };
+
+        const standings = dishes.map((dish) => {
+          const dishResponses = responses.filter((response) => response.dishId === dish.dishId);
+          const positiveUsers = new Set(
+            dishResponses
+              .filter(
+                (response) =>
+                  response.reaction === pollReaction.like ||
+                  response.reaction === pollReaction.superLike,
+              )
+              .map((response) => response.userId),
+          );
+          const superLikes = dishResponses.filter(
+            (response) => response.reaction === pollReaction.superLike,
+          ).length;
+          const dislikes = dishResponses.filter(
+            (response) => response.reaction === pollReaction.dislike,
+          ).length;
+          const score = dishResponses.reduce(
+            (total, response) => total + scoreByReaction[response.reaction],
+            0,
+          );
+
+          return {
+            dishId: dish.dishId,
+            position: dish.position,
+            score,
+            positiveCount: positiveUsers.size,
+            superLikes,
+            dislikes,
+          };
+        });
+
+        const eligible = standings
+          .filter((standing) => standing.positiveCount >= minPositiveCount)
+          .sort((left, right) => {
+            if (right.score !== left.score) {
+              return right.score - left.score;
+            }
+            if (right.positiveCount !== left.positiveCount) {
+              return right.positiveCount - left.positiveCount;
+            }
+            if (right.superLikes !== left.superLikes) {
+              return right.superLikes - left.superLikes;
+            }
+            if (left.dislikes !== right.dislikes) {
+              return left.dislikes - right.dislikes;
+            }
+            return left.position - right.position;
+          });
+
+        if (eligible.length > 0) {
+          return eligible[0].dishId as string;
+        }
+
+        const fallback = standings.sort((left, right) => {
+          if (right.score !== left.score) {
+            return right.score - left.score;
+          }
+          return left.position - right.position;
+        });
+
+        return (fallback[0]?.dishId as string | undefined) ?? null;
+      });
+
+    const deletePoll = (id: string) =>
+      Effect.gen(function* () {
+        yield* Effect.tryPromise({
+          try: () => db.prepare("DELETE FROM polls WHERE id = ?").bind(id).run(),
           catch: (err) =>
             new DatabaseError({
               message: `Failed to delete poll: ${err}`,
@@ -123,6 +421,14 @@ export const D1PollRepositoryLive = Layer.effect(
 
     return PollRepository.of({
       findById,
+      findByRoomId,
+      findDishesByPollId,
+      findResponsesByPollId,
+      addParticipant,
+      saveDishes,
+      upsertResponse,
+      finish,
+      computeWinner,
       save: savePoll,
       delete: deletePoll,
     });

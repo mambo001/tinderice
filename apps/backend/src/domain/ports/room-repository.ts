@@ -22,6 +22,10 @@ export interface RoomRepository {
     readonly Room[],
     DatabaseError | ParseResult.ParseError
   >;
+  readonly addMember: (
+    roomId: string,
+    userId: string,
+  ) => Effect.Effect<void, DatabaseError>;
   readonly save: (
     room: Room,
   ) => Effect.Effect<void, DatabaseError | ParseResult.ParseError>;

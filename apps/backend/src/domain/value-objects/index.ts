@@ -1,6 +1,7 @@
 export * from './user-id'
 export * from './room-id'
 export * from './poll-id'
+export * from './poll-reaction'
 export * from './dish-id'
 export * from './dish-tags'
 export * from './recipe-id'

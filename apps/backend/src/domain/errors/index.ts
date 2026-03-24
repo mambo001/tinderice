@@ -22,6 +22,10 @@ export class PollNotFoundError extends Data.TaggedError("PollNotFoundError")<{
   message?: string;
 }> {}
 
+export class PollGameplayError extends Data.TaggedError("PollGameplayError")<{
+  message?: string;
+}> {}
+
 export class DatabaseError extends Data.TaggedError("DatabaseError")<{
   message?: string;
 }> {}

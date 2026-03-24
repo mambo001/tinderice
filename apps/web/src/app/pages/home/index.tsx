@@ -1,42 +1,102 @@
 import {
   Card,
-  CardActions,
   CardContent,
-  CardHeader,
-  Box,
   Container,
   Stack,
   Typography,
-  Skeleton,
   CardActionArea,
+  Button,
+  CircularProgress,
+  Chip,
 } from "@mui/material";
-import { type PropsWithChildren } from "react";
+import { type PropsWithChildren, useMemo } from "react";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import { useNavigate } from "react-router";
+import { useQueries } from "@tanstack/react-query";
+import { Schema } from "effect";
 
 import { useIdentityContext } from "@/app/context/identity";
+import { useRoomContext } from "@/app/context/room";
 
-const rooms = [
-  {
-    id: "1",
-    name: "Room 1",
-  },
-  {
-    id: "1",
-    name: "Room 2",
-  },
-  {
-    id: "1",
-    name: "Room 3",
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL;
+
+const Poll = Schema.Struct({
+  id: Schema.String,
+  roomId: Schema.String,
+  ownerId: Schema.String,
+  title: Schema.String,
+  participants: Schema.Array(Schema.String),
+  winnerDishId: Schema.NullOr(Schema.String),
+  startedAt: Schema.String,
+  endedAt: Schema.NullOr(Schema.String),
+  isActive: Schema.Boolean,
+});
+
+const decodePolls = Schema.decodeUnknownSync(Schema.Array(Poll));
 
 export function Home() {
   const navigate = useNavigate();
   const { identity } = useIdentityContext();
+  const {
+    ownedRooms,
+    memberRooms,
+    rooms,
+    isOwnedRoomsLoading,
+    isMemberRoomsLoading,
+  } = useRoomContext();
+
+  const activePollResults = useQueries({
+    queries: rooms.map((room) => ({
+      queryKey: ["polls", "room", room.id],
+      enabled: rooms.length > 0,
+      queryFn: async () => {
+        const response = await fetch(`${API_URL}/poll/room/${room.id}`, {
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch polls for room ${room.id}`);
+        }
+
+        const json = await response.json();
+        return decodePolls(json).filter((poll) => poll.isActive);
+      },
+    })),
+  });
+
+  const activePollsLoading =
+    isOwnedRoomsLoading ||
+    isMemberRoomsLoading ||
+    activePollResults.some((result) => result.isLoading);
+
+  const activePolls = useMemo(
+    () =>
+      activePollResults.flatMap((result, index) => {
+        const room = rooms[index];
+
+        if (!room || !result.data) {
+          return [];
+        }
+
+        return result.data.map((poll) => ({
+          ...poll,
+          participants: [...poll.participants],
+          roomName: room.name,
+        }));
+      }),
+    [activePollResults, rooms],
+  );
 
   const handleRoomClick = (roomId: string) => {
     navigate(`/room/${roomId}`);
+  };
+
+  const handleCreateRoomClick = async () => {
+    navigate("/room/create");
+  };
+
+  const handlePollClick = (pollId: string) => {
+    navigate(`/poll/${pollId}`);
   };
 
   return (
@@ -57,7 +117,7 @@ export function Home() {
           </CardActionArea>
         </Card>
         <Card>
-          <CardActionArea onClick={() => console.log("")}>
+          <CardActionArea onClick={handleCreateRoomClick}>
             <CardContent>
               <Stack justifyContent={"space-between"} direction={"row"}>
                 <Typography>Create Room</Typography>
@@ -68,68 +128,156 @@ export function Home() {
         </Card>
       </Stack>
       <Typography>Active Polls</Typography>
+      <ActivePollList
+        polls={activePolls}
+        isLoading={activePollsLoading}
+        onPollClick={handlePollClick}
+      />
+      <Typography>Owned Rooms</Typography>
+      <RoomList
+        rooms={ownedRooms}
+        isLoading={isOwnedRoomsLoading}
+        onRoomClick={handleRoomClick}
+        emptyLabel="No owned rooms yet"
+      />
+      <Typography>Joined Rooms</Typography>
+      <RoomList
+        rooms={memberRooms}
+        isLoading={isMemberRoomsLoading}
+        onRoomClick={handleRoomClick}
+        emptyLabel="No joined rooms yet"
+      />
+    </HomeLayout>
+  );
+}
+
+interface ActivePollListProps {
+  polls: Array<{
+    id: string;
+    title: string;
+    roomId: string;
+    roomName: string;
+    participants: string[];
+  }>;
+  isLoading: boolean;
+  onPollClick: (pollId: string) => void;
+}
+
+function ActivePollList(props: ActivePollListProps) {
+  if (props.isLoading) {
+    return (
       <Stack gap={1}>
         <Card>
-          <CardActionArea onClick={() => console.log("")}>
+          <CardContent>
+            <Stack direction="row" justifyContent="center">
+              <CircularProgress size={24} />
+            </Stack>
+          </CardContent>
+        </Card>
+      </Stack>
+    );
+  }
+
+  if (props.polls.length === 0) {
+    return (
+      <Card variant="outlined">
+        <CardContent>
+          <Typography color="text.secondary">
+            No active polls across your rooms right now
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Stack gap={1}>
+      {props.polls.map((poll) => (
+        <Card key={poll.id}>
+          <CardActionArea onClick={() => props.onPollClick(poll.id)}>
+            <CardContent>
+              <Stack gap={1.5}>
+                <Stack justifyContent="space-between" direction="row" gap={1.5}>
+                  <Typography fontWeight={600}>{poll.title}</Typography>
+                  <ChevronRightOutlinedIcon />
+                </Stack>
+                <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
+                  <Chip size="small" label={poll.roomName} variant="outlined" />
+                  <Typography variant="body2" color="text.secondary">
+                    {poll.participants.length} participants
+                  </Typography>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+      ))}
+    </Stack>
+  );
+}
+
+interface RoomListProps {
+  rooms: Array<{
+    id: string;
+    name: string;
+  }>;
+  isLoading: boolean;
+  onRoomClick: (roomId: string) => void;
+  emptyLabel: string;
+}
+
+function RoomList(props: RoomListProps) {
+  if (props.isLoading) {
+    return (
+      <Stack gap={1}>
+        <Card>
+          <CardContent>
+            <Stack direction="row" justifyContent="center">
+              <CircularProgress size={24} />
+            </Stack>
+          </CardContent>
+        </Card>
+      </Stack>
+    );
+  }
+
+  if (props.rooms.length === 0) {
+    return (
+      <Card variant="outlined">
+        <CardContent>
+          <Typography color="text.secondary">{props.emptyLabel}</Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Stack gap={1}>
+      {props.rooms.map((room) => (
+        <Card key={room.id}>
+          <CardActionArea onClick={() => props.onRoomClick(room.id)}>
             <CardContent>
               <Stack justifyContent={"space-between"} direction={"row"}>
-                <Typography>{`<VOTING_TITLE>-<CATEGORY>`}</Typography>
+                <Typography>{room.name}</Typography>
                 <ChevronRightOutlinedIcon />
               </Stack>
             </CardContent>
           </CardActionArea>
         </Card>
-      </Stack>
-      <Typography>Recently Joined Rooms</Typography>
-      <Stack gap={1}>
-        {rooms.map((room) => (
-          <Card key={room.name}>
-            <CardActionArea onClick={() => handleRoomClick(room.id)}>
-              <CardContent>
-                <Stack justifyContent={"space-between"} direction={"row"}>
-                  <Typography>{room.name}</Typography>
-                  <ChevronRightOutlinedIcon />
-                </Stack>
-              </CardContent>
-            </CardActionArea>
-          </Card>
-        ))}
-      </Stack>
-    </HomeLayout>
+      ))}
+    </Stack>
   );
 }
 
 export function HomeSkeleton() {
   return (
     <HomeLayout>
-      <Card
-        sx={{
-          width: "100%",
-          maxWidth: 600,
-          flex: 1,
-        }}
-      >
-        <CardHeader
-          action={<Skeleton variant="rectangular" width={100} height={36} />}
-        />
-        <CardContent
-          sx={{
-            display: "flex",
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Stack gap={1}>
-            <Box>
-              <Skeleton variant="circular" width={350} height={350} />
-            </Box>
-          </Stack>
-        </CardContent>
-        <CardActions sx={{ py: 4, justifyContent: "center" }}>
-          <Skeleton variant="rectangular" width={130} height={36} />
-        </CardActions>
-      </Card>
+      <Stack gap={2}>
+        <Typography variant="h5">Loading...</Typography>
+        <Button disabled variant="outlined">
+          Loading home
+        </Button>
+      </Stack>
     </HomeLayout>
   );
 }
