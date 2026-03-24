@@ -10,6 +10,18 @@ export interface RoomRepository {
     Room,
     RoomNotFoundError | DatabaseError | ParseResult.ParseError
   >;
+  readonly findByOwnerId: (
+    ownerId: string,
+  ) => Effect.Effect<
+    readonly Room[],
+    DatabaseError | ParseResult.ParseError
+  >;
+  readonly findByMemberId: (
+    memberId: string,
+  ) => Effect.Effect<
+    readonly Room[],
+    DatabaseError | ParseResult.ParseError
+  >;
   readonly save: (
     room: Room,
   ) => Effect.Effect<void, DatabaseError | ParseResult.ParseError>;

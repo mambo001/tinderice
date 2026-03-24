@@ -57,6 +57,79 @@ export const D1RoomRepositoryLive = Layer.effect(
         });
       });
 
+    const decodeRoomRows = Schema.decodeUnknown(Schema.Array(Room));
+
+    const findByOwnerId = (ownerId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT
+                  rooms.id,
+                  rooms.ownerId,
+                  rooms.name,
+                  COALESCE(json_group_array(room_members.userId), json('[]')) AS members,
+                  rooms.createdAt
+                FROM rooms
+                LEFT JOIN room_members ON room_members.roomId = rooms.id
+                WHERE rooms.ownerId = ?
+                GROUP BY rooms.id, rooms.ownerId, rooms.name, rooms.createdAt
+                ORDER BY rooms.createdAt DESC`,
+              )
+              .bind(ownerId)
+              .all<RoomRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query rooms by owner ID: ${err}`,
+            }),
+        });
+
+        return yield* decodeRoomRows(
+          rows.results.map((row) => ({
+            ...row,
+            members: JSON.parse(row.members) as string[],
+          })),
+        );
+      });
+
+    const findByMemberId = (memberId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT
+                  rooms.id,
+                  rooms.ownerId,
+                  rooms.name,
+                  COALESCE(json_group_array(all_members.userId), json('[]')) AS members,
+                  rooms.createdAt
+                FROM rooms
+                INNER JOIN room_members AS matched_members
+                  ON matched_members.roomId = rooms.id
+                LEFT JOIN room_members AS all_members
+                  ON all_members.roomId = rooms.id
+                WHERE matched_members.userId = ?
+                GROUP BY rooms.id, rooms.ownerId, rooms.name, rooms.createdAt
+                ORDER BY rooms.createdAt DESC`,
+              )
+              .bind(memberId)
+              .all<RoomRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query rooms by member ID: ${err}`,
+            }),
+        });
+
+        return yield* decodeRoomRows(
+          rows.results.map((row) => ({
+            ...row,
+            members: JSON.parse(row.members) as string[],
+          })),
+        );
+      });
+
     const saveRoom = (room: Room) =>
       Effect.gen(function* () {
         const encoded = yield* encodeRoom(room);
@@ -103,6 +176,8 @@ export const D1RoomRepositoryLive = Layer.effect(
 
     return RoomRepository.of({
       findById,
+      findByOwnerId,
+      findByMemberId,
       save: saveRoom,
       delete: deleteRoom,
     });
