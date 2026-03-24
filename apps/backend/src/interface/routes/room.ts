@@ -36,9 +36,11 @@ export const roomRoutes = new Hono<{ Bindings: Env }>();
 
 roomRoutes.post("/", async (c) => {
   const rawBody = await c.req.json();
+  const ownerId = c.req.header("owner-id");
   const rawHeaders = {
-    ownerId: c.req.header("owner-id"),
+    ownerId,
   };
+  console.log({ rawHeaders });
 
   const program = Effect.gen(function* () {
     const body = yield* decodeCreateRoomBody(rawBody);
