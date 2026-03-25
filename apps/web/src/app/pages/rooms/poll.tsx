@@ -519,6 +519,9 @@ export function Poll() {
                   <CardMedia
                     component="img"
                     height="360"
+                    sx={{
+                      maxHeight: { xs: 360 },
+                    }}
                     image={winnerDish.imageUrl}
                     alt={winnerDish.dishName}
                   />
