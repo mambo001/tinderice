@@ -27,6 +27,8 @@ import { useRoomContext } from "@/app/context/room";
 
 type PollReaction = "dislike" | "like" | "superLike" | "skip";
 
+const POLL_DISH_COUNT = 15;
+
 function getRemainingTime(deadlineAt: string, now: number) {
   const remainingMs = new Date(deadlineAt).getTime() - now;
 
@@ -570,7 +572,7 @@ export function Poll() {
                           </Typography>
                           <Typography variant="overline" color="text.secondary">
                             Dish {currentDish.position + 1} of{" "}
-                            {pollDishes.length || 20}
+                            {pollDishes.length || POLL_DISH_COUNT}
                           </Typography>
                         </Stack>
                       </CardContent>

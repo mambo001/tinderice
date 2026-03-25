@@ -6,6 +6,21 @@ import { Poll, PollDish } from "@/domain/entities";
 import { DishId, PollId, RoomId, UserId } from "@/domain/value-objects";
 import { POLL_CANDIDATE_DISHES } from "@/application/support/poll-candidates";
 
+const POLL_DISH_COUNT = 15;
+
+function pickPollDishes() {
+  const dishes = [...POLL_CANDIDATE_DISHES];
+
+  for (let index = dishes.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const currentDish = dishes[index];
+    dishes[index] = dishes[swapIndex];
+    dishes[swapIndex] = currentDish;
+  }
+
+  return dishes.slice(0, POLL_DISH_COUNT);
+}
+
 const CreatePollInput = Schema.Struct({
   title: Schema.NonEmptyString,
   participants: Schema.Array(UserId),
@@ -68,7 +83,7 @@ export function createPoll(
       isActive: true,
     });
 
-    const pollDishes = POLL_CANDIDATE_DISHES.map((dish, index) =>
+    const pollDishes = pickPollDishes().map((dish, index) =>
       PollDish.make({
         pollId: id,
         dishId: DishId.make(dish.id),
