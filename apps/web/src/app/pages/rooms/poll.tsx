@@ -531,7 +531,9 @@ export function Poll() {
               </Card>
               <Button
                 variant="contained"
-                onClick={() => navigate(poll?.roomId ? `/room/${poll.roomId}` : "/")}
+                onClick={() =>
+                  navigate(poll?.roomId ? `/room/${poll.roomId}` : "/")
+                }
               >
                 Back to room
               </Button>
@@ -559,7 +561,12 @@ export function Poll() {
                         component="img"
                         image={currentDish.imageUrl}
                         alt={currentDish.dishName}
-                        sx={{ flex: 1, minHeight: 0, objectFit: "cover" }}
+                        sx={{
+                          flex: 1,
+                          minHeight: 0,
+                          objectFit: "cover",
+                          maxHeight: { xs: 360, md: 440 },
+                        }}
                       />
                       <CardContent sx={{ pt: 2, pb: 2.5 }}>
                         <Stack
@@ -567,11 +574,11 @@ export function Poll() {
                           justifyContent={"space-between"}
                           alignItems={"center"}
                         >
-                          <Typography variant="h4">
+                          <Typography variant="h5">
                             {currentDish.dishName}
                           </Typography>
                           <Typography variant="overline" color="text.secondary">
-                            Dish {currentDish.position + 1} of{" "}
+                            {currentDish.position + 1} /{" "}
                             {pollDishes.length || POLL_DISH_COUNT}
                           </Typography>
                         </Stack>
