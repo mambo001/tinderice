@@ -1,9 +1,12 @@
 import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -11,6 +14,7 @@ import {
   CardActionArea,
   CardContent,
   Chip,
+  Collapse,
   Container,
   Divider,
   Stack,
@@ -32,25 +36,38 @@ function formatTimeLeft(deadlineAt: string) {
   return `${totalMinutes} min left`;
 }
 
+function formatEndedAt(endedAt: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(endedAt));
+}
+
 export function Room() {
   const navigate = useNavigate();
   const { roomId = "" } = useParams<{ roomId: string }>();
   const {
     room,
     activePolls,
+    completedPollSummaries,
     roomMembers,
     roomPresence,
     getRoomById,
+    getCompletedPollSummariesByRoomId,
     getPollsByRoomId,
     getRoomMembersByIds,
     getRoomPresenceByRoomId,
     touchRoomPresence,
     isRoomLoading,
     isActivePollsLoading,
+    isCompletedPollSummariesLoading,
     isRoomMembersLoading,
     isRoomPresenceLoading,
   } = useRoomContext();
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (!roomId) {
@@ -59,7 +76,13 @@ export function Room() {
 
     getRoomById(roomId);
     getPollsByRoomId(roomId);
-  }, [getPollsByRoomId, getRoomById, roomId]);
+    getCompletedPollSummariesByRoomId(roomId);
+  }, [
+    getCompletedPollSummariesByRoomId,
+    getPollsByRoomId,
+    getRoomById,
+    roomId,
+  ]);
 
   useEffect(() => {
     if (!roomId || !room?.members?.length) {
@@ -121,6 +144,16 @@ export function Room() {
   const activeMemberCount = useMemo(
     () => members.filter((member) => member.isActive).length,
     [members],
+  );
+
+  const recentPolls = useMemo(
+    () => completedPollSummaries.slice(0, 3),
+    [completedPollSummaries],
+  );
+
+  const olderPolls = useMemo(
+    () => completedPollSummaries.slice(3),
+    [completedPollSummaries],
   );
 
   const handleInvitePeopleClick = () => {
@@ -268,6 +301,123 @@ export function Room() {
                     </Card>
                   ))}
                 </Stack>
+              )}
+            </Stack>
+          </CardContent>
+        </Card>
+
+        <Card variant="outlined">
+          <CardContent>
+            <Stack gap={2}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <EmojiEventsOutlinedIcon fontSize="small" />
+                <Typography variant="h6">Recent Polls</Typography>
+              </Stack>
+
+              {isCompletedPollSummariesLoading ? (
+                <Typography color="text.secondary">
+                  Loading recent polls...
+                </Typography>
+              ) : completedPollSummaries.length === 0 ? (
+                <Alert severity="info" variant="outlined">
+                  No completed polls yet. Finished sessions will show up here.
+                </Alert>
+              ) : (
+                <>
+                  <Stack gap={1}>
+                    {recentPolls.map((poll) => (
+                      <Card key={poll.id} variant="outlined">
+                        <CardActionArea onClick={() => navigate(`/poll/${poll.id}`)}>
+                          <CardContent>
+                            <Stack gap={0.75}>
+                              <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                                gap={2}
+                                alignItems="center"
+                              >
+                                <Typography fontWeight={600}>{poll.title}</Typography>
+                                <Chip size="small" label="Completed" variant="outlined" />
+                              </Stack>
+                              <Typography variant="body2" color="text.secondary">
+                                Winner: {poll.winnerDishName ?? "No winner selected"}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {poll.participantCount} participants · Ended {formatEndedAt(poll.endedAt)}
+                              </Typography>
+                            </Stack>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
+                    ))}
+                  </Stack>
+
+                  {olderPolls.length > 0 ? (
+                    <Card
+                      variant="outlined"
+                      sx={{
+                        overflow: "hidden",
+                        borderRadius: 3,
+                      }}
+                    >
+                      <Button
+                        fullWidth
+                        variant="text"
+                        onClick={() => setHistoryOpen((current) => !current)}
+                        sx={{
+                          justifyContent: "space-between",
+                          px: 2,
+                          py: 1.25,
+                          color: "text.primary",
+                          borderRadius: 0,
+                        }}
+                        endIcon={
+                          <ExpandMoreOutlinedIcon
+                            sx={{
+                              transform: historyOpen ? "rotate(180deg)" : "rotate(0deg)",
+                              transition: "transform 180ms ease",
+                            }}
+                          />
+                        }
+                      >
+                        See more
+                      </Button>
+                      <Collapse in={historyOpen} timeout="auto" unmountOnExit>
+                        <CardContent>
+                          <Stack gap={1}>
+                            {olderPolls.map((poll) => (
+                              <Card key={poll.id} variant="outlined">
+                                <CardActionArea
+                                  onClick={() => navigate(`/poll/${poll.id}`)}
+                                >
+                                  <CardContent>
+                                    <Stack gap={0.75}>
+                                      <Typography fontWeight={600}>
+                                        {poll.title}
+                                      </Typography>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        Winner: {poll.winnerDishName ?? "No winner selected"}
+                                      </Typography>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        {poll.participantCount} participants · Ended {formatEndedAt(poll.endedAt)}
+                                      </Typography>
+                                    </Stack>
+                                  </CardContent>
+                                </CardActionArea>
+                              </Card>
+                            ))}
+                          </Stack>
+                        </CardContent>
+                      </Collapse>
+                    </Card>
+                  ) : null}
+                </>
               )}
             </Stack>
           </CardContent>

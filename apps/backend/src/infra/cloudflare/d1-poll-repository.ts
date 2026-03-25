@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
 
-import { Poll, PollDish, PollResponse } from "@/domain/entities";
+import { Poll, PollDish, PollResponse, PollSummary } from "@/domain/entities";
 import { PollRepository } from "@/domain/ports";
 import {
   DatabaseError,
@@ -39,6 +39,19 @@ interface PollResponseRow {
   respondedAt: number;
 }
 
+interface PollSummaryRow {
+  id: string;
+  roomId: string;
+  ownerId: string;
+  title: string;
+  participantCount: number;
+  winnerDishId: string | null;
+  winnerDishName: string | null;
+  startedAt: number;
+  deadlineAt: number;
+  endedAt: number;
+}
+
 const encodePoll = Schema.encode(Poll);
 const encodePollDish = Schema.encode(PollDish);
 const encodePollResponse = Schema.encode(PollResponse);
@@ -51,11 +64,16 @@ export const D1PollRepositoryLive = Layer.effect(
     const decodePollRows = Schema.decodeUnknown(Schema.Array(Poll));
     const decodePollDishRows = Schema.decodeUnknown(Schema.Array(PollDish));
     const decodePollResponseRows = Schema.decodeUnknown(Schema.Array(PollResponse));
+    const decodePollSummaryRows = Schema.decodeUnknown(Schema.Array(PollSummary));
 
     const toPoll = (row: PollRow) => ({
       ...row,
       participants: JSON.parse(row.participants) as string[],
       isActive: row.isActive === true || row.isActive === 1,
+    });
+
+    const toPollSummary = (row: PollSummaryRow) => ({
+      ...row,
     });
 
     const findById = (id: string) =>
@@ -135,6 +153,47 @@ export const D1PollRepositoryLive = Layer.effect(
         });
 
         return yield* decodePollRows(rows.results.map(toPoll));
+      });
+
+    const findCompletedSummariesByRoomId = (roomId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT
+                  polls.id,
+                  polls.roomId,
+                  polls.ownerId,
+                  polls.title,
+                  (
+                    SELECT COUNT(*)
+                    FROM poll_participants
+                    WHERE poll_participants.pollId = polls.id
+                  ) AS participantCount,
+                  polls.winnerDishId,
+                  poll_dishes.dishName AS winnerDishName,
+                  polls.startedAt,
+                  polls.deadlineAt,
+                  polls.endedAt
+                FROM polls
+                LEFT JOIN poll_dishes
+                  ON poll_dishes.pollId = polls.id
+                  AND poll_dishes.dishId = polls.winnerDishId
+                WHERE polls.roomId = ?
+                  AND polls.isActive = FALSE
+                  AND polls.endedAt IS NOT NULL
+                ORDER BY polls.endedAt DESC`,
+              )
+              .bind(roomId)
+              .all<PollSummaryRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query completed poll summaries by room ID: ${err}`,
+            }),
+        });
+
+        return yield* decodePollSummaryRows(rows.results.map(toPollSummary));
       });
 
     const findDishesByPollId = (pollId: string) =>
@@ -354,6 +413,7 @@ export const D1PollRepositoryLive = Layer.effect(
     return PollRepository.of({
       findById,
       findByRoomId,
+      findCompletedSummariesByRoomId,
       findDishesByPollId,
       findResponsesByPollId,
       addParticipant,

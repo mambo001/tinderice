@@ -64,6 +64,19 @@ const PollResult = Schema.Struct({
   responsesCount: Schema.Number,
 });
 
+const PollSummary = Schema.Struct({
+  id: Schema.String,
+  roomId: Schema.String,
+  ownerId: Schema.String,
+  title: Schema.String,
+  participantCount: Schema.Number,
+  winnerDishId: Schema.NullOr(Schema.String),
+  winnerDishName: Schema.NullOr(Schema.String),
+  startedAt: Schema.String,
+  deadlineAt: Schema.String,
+  endedAt: Schema.String,
+});
+
 const UserSummary = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
@@ -105,6 +118,7 @@ type Poll = typeof Poll.Type;
 type PollDish = typeof PollDish.Type;
 type PollResponse = typeof PollResponse.Type;
 type PollResult = typeof PollResult.Type;
+type PollSummary = typeof PollSummary.Type;
 type UserSummary = typeof UserSummary.Type;
 type RoomPresence = typeof RoomPresence.Type;
 type CreateRoomResponse = typeof CreateRoomResponse.Type;
@@ -120,6 +134,7 @@ const decodePolls = Schema.decodeUnknownSync(Schema.Array(Poll));
 const decodePollDishes = Schema.decodeUnknownSync(Schema.Array(PollDish));
 const decodePollResponses = Schema.decodeUnknownSync(Schema.Array(PollResponse));
 const decodePollResults = Schema.decodeUnknownSync(Schema.Array(PollResult));
+const decodePollSummaries = Schema.decodeUnknownSync(Schema.Array(PollSummary));
 const decodeUserSummaries = Schema.decodeUnknownSync(Schema.Array(UserSummary));
 const decodeRoomPresence = Schema.decodeUnknownSync(Schema.Array(RoomPresence));
 const decodeCreateRoomResponse = Schema.decodeUnknownSync(CreateRoomResponse);
@@ -150,6 +165,8 @@ interface RoomContext {
   memberRooms: Room[];
   rooms: Room[];
   activePolls: Poll[];
+  roomPolls: Poll[];
+  completedPollSummaries: PollSummary[];
   allActivePolls: PollWithRoomName[];
   poll: Poll | null;
   pollDishes: PollDish[];
@@ -166,6 +183,7 @@ interface RoomContext {
   isOwnedRoomsLoading: boolean;
   isMemberRoomsLoading: boolean;
   isActivePollsLoading: boolean;
+  isCompletedPollSummariesLoading: boolean;
   isAllActivePollsLoading: boolean;
   isPollLoading: boolean;
   isPollDishesLoading: boolean;
@@ -182,6 +200,7 @@ interface RoomContext {
   getOwnedRooms: () => Promise<Room[]>;
   getMemberRooms: () => Promise<Room[]>;
   getPollsByRoomId: (roomId: string) => Promise<Poll[]>;
+  getCompletedPollSummariesByRoomId: (roomId: string) => Promise<PollSummary[]>;
   getAllActivePolls: () => Promise<PollWithRoomName[]>;
   getPollById: (pollId: string) => Promise<Poll>;
   getPollDishesByPollId: (pollId: string) => Promise<PollDish[]>;
@@ -199,6 +218,8 @@ const RoomContext = createContext<RoomContext>({
   memberRooms: [],
   rooms: [],
   activePolls: [],
+  roomPolls: [],
+  completedPollSummaries: [],
   allActivePolls: [],
   poll: null,
   pollDishes: [],
@@ -215,6 +236,7 @@ const RoomContext = createContext<RoomContext>({
   isOwnedRoomsLoading: false,
   isMemberRoomsLoading: false,
   isActivePollsLoading: false,
+  isCompletedPollSummariesLoading: false,
   isAllActivePollsLoading: false,
   isPollLoading: false,
   isPollDishesLoading: false,
@@ -247,6 +269,9 @@ const RoomContext = createContext<RoomContext>({
     throw new Error("RoomContextProvider is not mounted");
   },
   getPollsByRoomId: async () => {
+    throw new Error("RoomContextProvider is not mounted");
+  },
+  getCompletedPollSummariesByRoomId: async () => {
     throw new Error("RoomContextProvider is not mounted");
   },
   getAllActivePolls: async () => {
@@ -305,6 +330,9 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const [selectedPollResultsId, setSelectedPollResultsId] = useState<string | null>(
     null,
   );
+  const [selectedCompletedPollRoomId, setSelectedCompletedPollRoomId] = useState<
+    string | null
+  >(null);
   const [selectedRoomPresenceId, setSelectedRoomPresenceId] = useState<string | null>(
     null,
   );
@@ -362,8 +390,20 @@ export function RoomContextProvider(props: PropsWithChildren) {
     });
 
     const polls = await readJsonOrThrow(response, decodePolls);
-    return polls.filter((poll) => poll.isActive);
+    return [...polls];
   }, []);
+
+  const fetchCompletedPollSummariesByRoomId = useCallback(
+    async (roomId: string): Promise<PollSummary[]> => {
+      const response = await fetch(`${API_URL}/poll/room/${roomId}/completed`, {
+        method: "GET",
+      });
+
+      const summaries = await readJsonOrThrow(response, decodePollSummaries);
+      return [...summaries];
+    },
+    [],
+  );
 
   const fetchPollDishesByPollId = useCallback(async (pollId: string): Promise<PollDish[]> => {
     const response = await fetch(`${API_URL}/poll/${pollId}/dishes`, {
@@ -510,6 +550,18 @@ export function RoomContextProvider(props: PropsWithChildren) {
     },
   });
 
+  const completedPollSummariesQuery = useQuery({
+    queryKey: ["polls", "room", selectedCompletedPollRoomId, "completed"],
+    enabled: selectedCompletedPollRoomId !== null,
+    queryFn: async (): Promise<PollSummary[]> => {
+      if (!selectedCompletedPollRoomId) {
+        throw new Error("Room id is required");
+      }
+
+      return fetchCompletedPollSummariesByRoomId(selectedCompletedPollRoomId);
+    },
+  });
+
   const roomMembersQuery = useQuery({
     queryKey: ["room-members", ...selectedRoomMemberIds],
     enabled: selectedRoomMemberIds.length > 0,
@@ -534,9 +586,10 @@ export function RoomContextProvider(props: PropsWithChildren) {
     () => memberRoomsQuery.data ?? [],
     [memberRoomsQuery.data],
   );
+  const roomPolls = useMemo(() => activePollsQuery.data ?? [], [activePollsQuery.data]);
   const activePolls = useMemo(
-    () => activePollsQuery.data ?? [],
-    [activePollsQuery.data],
+    () => roomPolls.filter((poll) => poll.isActive),
+    [roomPolls],
   );
   const poll = pollQuery.data ?? null;
   const pollDishes = useMemo(
@@ -550,6 +603,10 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const pollResults = useMemo(
     () => pollResultsQuery.data ?? [],
     [pollResultsQuery.data],
+  );
+  const completedPollSummaries = useMemo(
+    () => completedPollSummariesQuery.data ?? [],
+    [completedPollSummariesQuery.data],
   );
   const roomMembers = useMemo(
     () => roomMembersQuery.data ?? [],
@@ -637,6 +694,18 @@ export function RoomContextProvider(props: PropsWithChildren) {
       });
     },
     [fetchPollsByRoomId, queryClient],
+  );
+
+  const getCompletedPollSummariesByRoomId = useCallback(
+    async (roomId: string): Promise<PollSummary[]> => {
+      setSelectedCompletedPollRoomId(roomId);
+
+      return queryClient.fetchQuery({
+        queryKey: ["polls", "room", roomId, "completed"],
+        queryFn: () => fetchCompletedPollSummariesByRoomId(roomId),
+      });
+    },
+    [fetchCompletedPollSummariesByRoomId, queryClient],
   );
 
   const getAllActivePolls = useCallback(async (): Promise<PollWithRoomName[]> => {
@@ -969,6 +1038,8 @@ export function RoomContextProvider(props: PropsWithChildren) {
         memberRooms,
         rooms,
         activePolls,
+        roomPolls,
+        completedPollSummaries,
         allActivePolls,
         poll,
         pollDishes,
@@ -985,6 +1056,8 @@ export function RoomContextProvider(props: PropsWithChildren) {
         isOwnedRoomsLoading: ownedRoomsQuery.isLoading || ownedRoomsQuery.isFetching,
         isMemberRoomsLoading: memberRoomsQuery.isLoading || memberRoomsQuery.isFetching,
         isActivePollsLoading: activePollsQuery.isLoading || activePollsQuery.isFetching,
+        isCompletedPollSummariesLoading:
+          completedPollSummariesQuery.isLoading || completedPollSummariesQuery.isFetching,
         isAllActivePollsLoading:
           (ownedRoomsQuery.isLoading || ownedRoomsQuery.isFetching || memberRoomsQuery.isLoading || memberRoomsQuery.isFetching) &&
           rooms.length > 0,
@@ -1006,6 +1079,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
         getOwnedRooms,
         getMemberRooms,
         getPollsByRoomId,
+        getCompletedPollSummariesByRoomId,
         getAllActivePolls,
         getPollById,
         getPollDishesByPollId,

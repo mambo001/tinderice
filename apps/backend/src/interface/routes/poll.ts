@@ -18,6 +18,7 @@ import {
 } from "@/domain/value-objects";
 import {
   findPollByPollId,
+  findCompletedPollSummariesByRoomId,
   findPollDishesByPollId,
   findPollResponsesByPollId,
   getPollResults,
@@ -93,6 +94,21 @@ pollRoutes.get("/room/:roomId", async (c) => {
   const program = Effect.gen(function* () {
     const params = yield* decodeGetPollsByRoomParams(rawParams);
     return yield* findPollsByRoomId(params.roomId);
+  });
+
+  const polls = await runEffect(c, program);
+
+  return c.json(polls);
+});
+
+pollRoutes.get("/room/:roomId/completed", async (c) => {
+  const rawParams = {
+    roomId: c.req.param("roomId"),
+  };
+
+  const program = Effect.gen(function* () {
+    const params = yield* decodeGetPollsByRoomParams(rawParams);
+    return yield* findCompletedPollSummariesByRoomId(params.roomId);
   });
 
   const polls = await runEffect(c, program);

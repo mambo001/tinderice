@@ -1,6 +1,6 @@
 import { Context, Effect, ParseResult } from "effect";
 
-import { Poll, PollDish, PollResponse } from "@/domain/entities";
+import { Poll, PollDish, PollResponse, PollSummary } from "@/domain/entities";
 import {
   DatabaseError,
   PollGameplayError,
@@ -19,6 +19,12 @@ export interface PollRepository {
     roomId: string,
   ) => Effect.Effect<
     readonly Poll[],
+    DatabaseError | ParseResult.ParseError
+  >;
+  readonly findCompletedSummariesByRoomId: (
+    roomId: string,
+  ) => Effect.Effect<
+    readonly PollSummary[],
     DatabaseError | ParseResult.ParseError
   >;
   readonly findDishesByPollId: (
