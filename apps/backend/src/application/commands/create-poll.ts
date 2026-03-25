@@ -6,7 +6,7 @@ import { Poll, PollDish } from "@/domain/entities";
 import { DishId, PollId, RoomId, UserId } from "@/domain/value-objects";
 import { POLL_CANDIDATE_DISHES } from "@/application/support/poll-candidates";
 
-const POLL_DISH_COUNT = 15;
+const POLL_DISH_COUNT = 12;
 
 function pickPollDishes() {
   const dishes = [...POLL_CANDIDATE_DISHES];
