@@ -27,8 +27,8 @@ import { useRoomContext } from "@/app/context/room";
 
 type PollReaction = "dislike" | "like" | "superLike" | "skip";
 
-function getRemainingTime(deadlineAt: string) {
-  const remainingMs = new Date(deadlineAt).getTime() - Date.now();
+function getRemainingTime(deadlineAt: string, now: number) {
+  const remainingMs = new Date(deadlineAt).getTime() - now;
 
   if (remainingMs <= 0) {
     return {
@@ -100,7 +100,7 @@ function ReactionButton(props: ReactionButtonProps) {
 }
 
 function PollOverlayTimer(props: { deadlineAt: string }) {
-  const time = getRemainingTime(props.deadlineAt);
+  const time = getRemainingTime(props.deadlineAt, Date.now());
 
   return (
     <Box
@@ -327,6 +327,7 @@ export function Poll() {
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const inviteUrl = useMemo(() => {
     const hashPath = `#/invite/poll/${pollId}`;
@@ -372,6 +373,8 @@ export function Poll() {
     }
 
     const interval = window.setInterval(() => {
+      setNow(Date.now());
+
       if (new Date(poll.deadlineAt).getTime() <= Date.now()) {
         void Promise.all([
           getPollById(pollId),
@@ -390,6 +393,10 @@ export function Poll() {
     poll?.isActive,
     pollId,
   ]);
+
+  useEffect(() => {
+    setNow(Date.now());
+  }, [poll?.deadlineAt, poll?.isActive]);
 
   const userResponses = useMemo(
     () => pollResponses.filter((response) => response.userId === identity?.id),
@@ -504,7 +511,10 @@ export function Poll() {
     !currentDish &&
     (isRespondingToPoll || isPollResponsesLoading || isPollDishesLoading);
 
-  const timer = poll?.deadlineAt ? getRemainingTime(poll.deadlineAt) : null;
+  const timer = useMemo(
+    () => (poll?.deadlineAt ? getRemainingTime(poll.deadlineAt, now) : null),
+    [now, poll?.deadlineAt],
+  );
 
   return (
     <Container
