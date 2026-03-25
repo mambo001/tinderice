@@ -22,6 +22,20 @@ interface CreatePollFormValues {
   title: string;
 }
 
+function getDefaultPollTitle(date: Date) {
+  const hour = date.getHours();
+
+  if (hour < 11) {
+    return "Breakfast";
+  }
+
+  if (hour < 16) {
+    return "Lunch";
+  }
+
+  return "Dinner";
+}
+
 function validate(values: CreatePollFormValues) {
   const errors: Partial<Record<keyof CreatePollFormValues, string>> = {};
 
@@ -51,9 +65,9 @@ export function CreatePoll() {
 
   const initialValues = useMemo<CreatePollFormValues>(
     () => ({
-      title: room?.name ? `${room.name} Vote` : "",
+      title: getDefaultPollTitle(new Date()),
     }),
-    [room?.name],
+    [],
   );
 
   return (
@@ -108,7 +122,7 @@ export function CreatePoll() {
               }}
               initialValues={initialValues}
               validate={validate}
-              render={({ handleSubmit, invalid, pristine, submitting }) => (
+              render={({ handleSubmit, invalid, submitting }) => (
                 <Box component="form" onSubmit={handleSubmit} noValidate>
                   <Stack gap={2.5}>
                     {submitError ? <Alert severity="error">{submitError}</Alert> : null}
@@ -135,7 +149,7 @@ export function CreatePoll() {
                       <Button
                         type="submit"
                         variant="contained"
-                        disabled={invalid || pristine || submitting || isCreatingPoll}
+                        disabled={invalid || submitting || isCreatingPoll}
                       >
                         {isCreatingPoll ? "Creating..." : "Create poll"}
                       </Button>

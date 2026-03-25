@@ -138,7 +138,7 @@ export function CreateRoom() {
               onSubmit={handleSubmit}
               initialValues={initialValues}
               validate={validate}
-              render={({ handleSubmit, submitting, pristine, invalid }) => (
+              render={({ handleSubmit, submitting, invalid }) => (
                 <Box component="form" onSubmit={handleSubmit} noValidate>
                   <Stack gap={2.5}>
                     {submitError ? (
@@ -169,9 +169,7 @@ export function CreateRoom() {
                         <Button
                           type="submit"
                           variant="contained"
-                          disabled={
-                            submitting || invalid || pristine || isCreatingRoom
-                          }
+                          disabled={submitting || invalid || isCreatingRoom}
                         >
                           {isCreatingRoom ? "Creating..." : "Create room"}
                         </Button>
