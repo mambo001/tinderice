@@ -1,4 +1,3 @@
-const API_URL = import.meta.env.VITE_API_URL;
 const CACHE_NAME = "tinderice-v1.1";
 const urlsToCache = [
   "./",
@@ -7,7 +6,7 @@ const urlsToCache = [
   "./icon-192.png",
   "./icon-512.png",
   "./favicon.svg",
-  API_URL,
+  "https://tinderice-api.reubenmark.workers.dev/",
 ];
 
 // Install event - cache files
