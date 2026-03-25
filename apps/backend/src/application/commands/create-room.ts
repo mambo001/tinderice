@@ -39,8 +39,6 @@ export function createRoom(
     const now = new Date();
 
     const id = yield* idGenerator.next();
-    console.log("input: ", { input });
-    console.log("input.ownerId: ", input.ownerId);
     const ownerId = UserId.make(input.ownerId);
 
     const room = Room.make({

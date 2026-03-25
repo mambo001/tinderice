@@ -3,8 +3,19 @@ import { Effect, Schema } from "effect";
 
 import { runEffect } from "../../app";
 import type { Env } from "@/shared/config";
-import { createPoll, finishPoll, joinPoll, respondToPoll } from "@/application/commands";
-import { DishId, PollId, PollReaction, RoomId, UserId } from "@/domain/value-objects";
+import {
+  createPoll,
+  finishPoll,
+  joinPoll,
+  respondToPoll,
+} from "@/application/commands";
+import {
+  DishId,
+  PollId,
+  PollReaction,
+  RoomId,
+  UserId,
+} from "@/domain/value-objects";
 import {
   findPollByPollId,
   findPollDishesByPollId,
@@ -51,8 +62,8 @@ export const pollRoutes = new Hono<{ Bindings: Env }>();
 pollRoutes.post("/", async (c) => {
   const rawBody = await c.req.json();
   const rawHeaders = {
-    ownerId: c.req.header("owner-id"),
-    roomId: c.req.header("room-id"),
+    ownerId: c.req.header("x-owner-id"),
+    roomId: c.req.header("x-room-id"),
   };
 
   const program = Effect.gen(function* () {
@@ -92,7 +103,7 @@ pollRoutes.post("/:id/join", async (c) => {
     id: c.req.param("id"),
   };
   const rawHeaders = {
-    userId: c.req.header("user-id"),
+    userId: c.req.header("x-user-id"),
   };
 
   const program = Effect.gen(function* () {
@@ -146,7 +157,7 @@ pollRoutes.post("/:id/respond", async (c) => {
     id: c.req.param("id"),
   };
   const rawHeaders = {
-    userId: c.req.header("user-id"),
+    userId: c.req.header("x-user-id"),
   };
 
   const program = Effect.gen(function* () {

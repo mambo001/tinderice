@@ -36,7 +36,7 @@ export const roomRoutes = new Hono<{ Bindings: Env }>();
 
 roomRoutes.post("/", async (c) => {
   const rawBody = await c.req.json();
-  const ownerId = c.req.header("owner-id");
+  const ownerId = c.req.header("x-owner-id");
   const rawHeaders = {
     ownerId,
   };

@@ -511,13 +511,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "owner-id": identity.id,
-          "Owner-Id": identity.id,
-          "OWNER-ID": identity.id,
-          "X-Owner-Id": identity.id,
-          "X-OWNER-ID": identity.id,
-          "Y-OWNER-ID": identity.id,
-          "Z-OWNER-ID": identity.id,
+          "x-owner-id": identity.id,
         },
         body: JSON.stringify({ name }),
       });
