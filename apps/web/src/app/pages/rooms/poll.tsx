@@ -50,14 +50,18 @@ export function Poll() {
     poll,
     pollDishes,
     pollResponses,
+    pollResults,
+    touchRoomPresence,
     getPollById,
     getPollDishesByPollId,
     getPollResponsesByPollId,
+    getPollResultsByPollId,
     respondToPoll,
     finishPoll,
     isPollLoading,
     isPollDishesLoading,
     isPollResponsesLoading,
+    isPollResultsLoading,
     isRespondingToPoll,
   } = useRoomContext();
   const [shareMessage, setShareMessage] = useState<string | null>(null);
@@ -78,8 +82,29 @@ export function Poll() {
       getPollById(pollId),
       getPollDishesByPollId(pollId),
       getPollResponsesByPollId(pollId),
+      getPollResultsByPollId(pollId),
     ]);
-  }, [getPollById, getPollDishesByPollId, getPollResponsesByPollId, pollId]);
+  }, [
+    getPollById,
+    getPollDishesByPollId,
+    getPollResponsesByPollId,
+    getPollResultsByPollId,
+    pollId,
+  ]);
+
+  useEffect(() => {
+    if (!poll?.roomId) {
+      return;
+    }
+
+    void touchRoomPresence(poll.roomId);
+
+    const interval = window.setInterval(() => {
+      void touchRoomPresence(poll.roomId);
+    }, 25_000);
+
+    return () => window.clearInterval(interval);
+  }, [poll?.roomId, touchRoomPresence]);
 
   useEffect(() => {
     if (!poll?.deadlineAt || !poll.isActive) {
@@ -89,29 +114,60 @@ export function Poll() {
 
     const updateLabel = () => {
       setTimeLabel(formatTimeRemaining(poll.deadlineAt));
+
+      if (new Date(poll.deadlineAt).getTime() <= Date.now()) {
+        void Promise.all([
+          getPollById(pollId),
+          getPollResponsesByPollId(pollId),
+          getPollResultsByPollId(pollId),
+        ]);
+      }
     };
 
     updateLabel();
     const interval = window.setInterval(updateLabel, 1000);
 
     return () => window.clearInterval(interval);
-  }, [poll?.deadlineAt, poll?.isActive]);
+  }, [
+    getPollById,
+    getPollResponsesByPollId,
+    getPollResultsByPollId,
+    poll?.deadlineAt,
+    poll?.isActive,
+    pollId,
+  ]);
 
   const userResponses = useMemo(
     () => pollResponses.filter((response) => response.userId === identity?.id),
     [identity?.id, pollResponses],
   );
 
-  const currentDish = useMemo(
-    () =>
-      pollDishes.find(
-        (dish) =>
-          !userResponses.some((response) => response.dishId === dish.dishId),
-      ) ?? null,
-    [pollDishes, userResponses],
+  const currentDish = useMemo(() => {
+    const unseenDish = pollDishes.find(
+      (dish) => !userResponses.some((response) => response.dishId === dish.dishId),
+    );
+
+    if (unseenDish) {
+      return unseenDish;
+    }
+
+    return (
+      pollDishes.find((dish) => {
+        const response = userResponses.find(
+          (response) => response.dishId === dish.dishId,
+        );
+
+        return response?.reaction === "skip";
+      }) ?? null
+    );
+  }, [pollDishes, userResponses]);
+
+  const completedResponses = useMemo(
+    () => userResponses.filter((response) => response.reaction !== "skip").length,
+    [userResponses],
   );
 
-  const progressLabel = `${userResponses.length}/${pollDishes.length || 20}`;
+  const progressLabel = `${completedResponses}/${pollDishes.length || 20}`;
 
   const winnerDish = useMemo(
     () => pollDishes.find((dish) => dish.dishId === poll?.winnerDishId) ?? null,
@@ -153,10 +209,11 @@ export function Poll() {
       await Promise.all([
         getPollById(pollId),
         getPollResponsesByPollId(pollId),
+        getPollResultsByPollId(pollId),
       ]);
 
       if (result.isComplete) {
-        await getPollById(pollId);
+        await Promise.all([getPollById(pollId), getPollResultsByPollId(pollId)]);
       }
     } catch (error) {
       setActionError(
@@ -169,7 +226,7 @@ export function Poll() {
     try {
       setActionError(null);
       await finishPoll(pollId);
-      await getPollById(pollId);
+      await Promise.all([getPollById(pollId), getPollResultsByPollId(pollId)]);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Failed to finish poll",
@@ -178,7 +235,10 @@ export function Poll() {
   };
 
   const isLoading =
-    isPollLoading || isPollDishesLoading || isPollResponsesLoading;
+    isPollLoading ||
+    isPollDishesLoading ||
+    isPollResponsesLoading ||
+    isPollResultsLoading;
 
   return (
     <Container
@@ -272,6 +332,26 @@ export function Poll() {
                       </Typography>
                     </CardContent>
                   </Card>
+                ) : null}
+                {pollResults.length > 0 ? (
+                  <Stack gap={1}>
+                    <Typography variant="subtitle1">Final standings</Typography>
+                    {pollResults.slice(0, 5).map((result) => (
+                      <Card key={result.dishId} variant="outlined">
+                        <CardContent>
+                          <Stack direction="row" justifyContent="space-between" gap={2}>
+                            <Typography fontWeight={600}>{result.dishName}</Typography>
+                            <Typography color="text.secondary">
+                              Score {result.score}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="body2" color="text.secondary">
+                            {result.positiveCount} positive, {result.superLikes} super-likes, {result.dislikes} dislikes
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
                 ) : null}
               </Stack>
             </CardContent>

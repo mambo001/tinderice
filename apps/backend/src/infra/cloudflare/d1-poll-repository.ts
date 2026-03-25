@@ -7,7 +7,7 @@ import {
   PollGameplayError,
   PollNotFoundError,
 } from "@/domain/errors";
-import { pollReaction } from "@/domain/value-objects";
+import { selectPollWinner, rankPollResults } from "@/domain/services";
 import { D1DatabaseTag } from "@/shared/config/env";
 
 interface PollRow {
@@ -336,76 +336,8 @@ export const D1PollRepositoryLive = Layer.effect(
           );
         }
 
-        const minPositiveCount = Math.max(1, Math.ceil(poll.participants.length * 0.4));
-        const scoreByReaction: Record<string, number> = {
-          [pollReaction.dislike]: -1,
-          [pollReaction.like]: 1,
-          [pollReaction.superLike]: 3,
-          [pollReaction.skip]: 0,
-        };
-
-        const standings = dishes.map((dish) => {
-          const dishResponses = responses.filter((response) => response.dishId === dish.dishId);
-          const positiveUsers = new Set(
-            dishResponses
-              .filter(
-                (response) =>
-                  response.reaction === pollReaction.like ||
-                  response.reaction === pollReaction.superLike,
-              )
-              .map((response) => response.userId),
-          );
-          const superLikes = dishResponses.filter(
-            (response) => response.reaction === pollReaction.superLike,
-          ).length;
-          const dislikes = dishResponses.filter(
-            (response) => response.reaction === pollReaction.dislike,
-          ).length;
-          const score = dishResponses.reduce(
-            (total, response) => total + scoreByReaction[response.reaction],
-            0,
-          );
-
-          return {
-            dishId: dish.dishId,
-            position: dish.position,
-            score,
-            positiveCount: positiveUsers.size,
-            superLikes,
-            dislikes,
-          };
-        });
-
-        const eligible = standings
-          .filter((standing) => standing.positiveCount >= minPositiveCount)
-          .sort((left, right) => {
-            if (right.score !== left.score) {
-              return right.score - left.score;
-            }
-            if (right.positiveCount !== left.positiveCount) {
-              return right.positiveCount - left.positiveCount;
-            }
-            if (right.superLikes !== left.superLikes) {
-              return right.superLikes - left.superLikes;
-            }
-            if (left.dislikes !== right.dislikes) {
-              return left.dislikes - right.dislikes;
-            }
-            return left.position - right.position;
-          });
-
-        if (eligible.length > 0) {
-          return eligible[0].dishId as string;
-        }
-
-        const fallback = standings.sort((left, right) => {
-          if (right.score !== left.score) {
-            return right.score - left.score;
-          }
-          return left.position - right.position;
-        });
-
-        return (fallback[0]?.dishId as string | undefined) ?? null;
+        const results = rankPollResults(poll, dishes, responses);
+        return selectPollWinner(poll, results);
       });
 
     const deletePoll = (id: string) =>

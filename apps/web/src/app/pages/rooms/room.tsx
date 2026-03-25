@@ -15,7 +15,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { useRoomContext } from "@/app/context/room";
@@ -26,10 +26,17 @@ export function Room() {
   const {
     room,
     activePolls,
+    roomMembers,
+    roomPresence,
     getRoomById,
     getPollsByRoomId,
+    getRoomMembersByIds,
+    getRoomPresenceByRoomId,
+    touchRoomPresence,
     isRoomLoading,
     isActivePollsLoading,
+    isRoomMembersLoading,
+    isRoomPresenceLoading,
   } = useRoomContext();
 
   useEffect(() => {
@@ -40,6 +47,56 @@ export function Room() {
     getRoomById(roomId);
     getPollsByRoomId(roomId);
   }, [getPollsByRoomId, getRoomById, roomId]);
+
+  useEffect(() => {
+    if (!roomId || !room?.members?.length) {
+      return;
+    }
+
+    void Promise.all([
+      getRoomMembersByIds(room.members),
+      getRoomPresenceByRoomId(roomId),
+      touchRoomPresence(roomId),
+    ]);
+
+    const interval = window.setInterval(() => {
+      void Promise.all([
+        touchRoomPresence(roomId),
+        getRoomPresenceByRoomId(roomId),
+      ]);
+    }, 25_000);
+
+    return () => window.clearInterval(interval);
+  }, [
+    getRoomMembersByIds,
+    getRoomPresenceByRoomId,
+    room?.members,
+    roomId,
+    touchRoomPresence,
+  ]);
+
+  const members = useMemo(
+    () =>
+      (room?.members ?? []).map((memberId) => {
+        const profile = roomMembers.find((member) => member.id === memberId);
+        const isActive = roomPresence.some(
+          (presence) => presence.userId === memberId,
+        );
+
+        return {
+          id: memberId,
+          name: profile?.name ?? memberId,
+          isActive,
+          isOwner: memberId === room?.ownerId,
+        };
+      }),
+    [room?.members, room?.ownerId, roomMembers, roomPresence],
+  );
+
+  const activeMemberCount = useMemo(
+    () => members.filter((member) => member.isActive).length,
+    [members],
+  );
 
   return (
     <Container
@@ -54,7 +111,7 @@ export function Room() {
         },
       }}
     >
-      <Stack marginTop={6} paddingBottom={8} gap={2.5}>
+      <Stack marginTop={0} paddingBottom={8} gap={2.5}>
         <Stack gap={1} alignItems="flex-start">
           <Button
             variant="text"
@@ -71,6 +128,21 @@ export function Room() {
             Manage polls in this room, keep track of active voting, and see who
             is inside.
           </Typography>
+          {room ? (
+            <Stack direction="row" gap={1} flexWrap="wrap">
+              <Chip
+                size="small"
+                variant="outlined"
+                label={`${room.members.length} members`}
+              />
+              <Chip
+                size="small"
+                color="success"
+                variant="outlined"
+                label={`${activeMemberCount} active now`}
+              />
+            </Stack>
+          ) : null}
         </Stack>
 
         <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
@@ -141,22 +213,47 @@ export function Room() {
                 <PeopleOutlineOutlinedIcon fontSize="small" />
                 <Typography variant="h6">Members</Typography>
               </Stack>
-              {room?.members?.length ? (
+              {isRoomMembersLoading || isRoomPresenceLoading ? (
+                <Typography color="text.secondary">
+                  Loading members...
+                </Typography>
+              ) : members.length ? (
                 <Stack divider={<Divider flexItem />}>
-                  {room.members.map((memberId) => (
+                  {members.map((member) => (
                     <Stack
-                      key={memberId}
+                      key={member.id}
                       direction="row"
                       alignItems="center"
                       gap={1.5}
+                      justifyContent="space-between"
                       py={1}
                     >
-                      <Avatar>{memberId.slice(0, 1).toUpperCase()}</Avatar>
-                      <Stack>
-                        <Typography fontWeight={500}>{memberId}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {memberId === room.ownerId ? "Room owner" : "Member"}
-                        </Typography>
+                      <Stack direction="row" alignItems="center" gap={1.5}>
+                        <Avatar>{member.name.slice(0, 1).toUpperCase()}</Avatar>
+                        <Stack>
+                          <Typography fontWeight={500}>
+                            {member.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {member.isOwner
+                              ? "Room owner"
+                              : member.isActive
+                                ? "Member"
+                                : "Recently active"}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                      <Stack direction="row" gap={1} flexWrap="wrap">
+                        {member.isActive ? (
+                          <Chip
+                            size="small"
+                            label="Active now"
+                            color="success"
+                          />
+                        ) : null}
+                        {member.isOwner ? (
+                          <Chip size="small" label="Owner" variant="outlined" />
+                        ) : null}
                       </Stack>
                     </Stack>
                   ))}

@@ -1,5 +1,6 @@
 export * from './user'
 export * from './room'
+export * from './room-presence'
 export * from './dish'
 export * from './poll'
 export * from './poll-dish'

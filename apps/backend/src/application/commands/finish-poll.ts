@@ -7,6 +7,7 @@ import {
 } from "@/domain/errors";
 import { PollRepository } from "@/domain/ports";
 import { PollId } from "@/domain/value-objects";
+import { finalizeExpiredPoll } from "@/application/support/finalize-expired-poll";
 
 const FinishPollInput = Schema.Struct({
   pollId: PollId,
@@ -29,9 +30,15 @@ export function finishPoll(
   PollRepository
 > {
   return Effect.gen(function* () {
+    const poll = yield* finalizeExpiredPoll(input.pollId);
     const repo = yield* PollRepository;
-    const winnerDishId = yield* repo.computeWinner(input.pollId);
-    yield* repo.finish(input.pollId, winnerDishId, new Date());
+    const winnerDishId = poll.isActive
+      ? yield* repo.computeWinner(input.pollId)
+      : (poll.winnerDishId ?? null);
+
+    if (poll.isActive) {
+      yield* repo.finish(input.pollId, winnerDishId, new Date());
+    }
 
     return {
       pollId: input.pollId,

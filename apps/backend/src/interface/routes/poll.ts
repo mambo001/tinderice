@@ -20,8 +20,10 @@ import {
   findPollByPollId,
   findPollDishesByPollId,
   findPollResponsesByPollId,
+  getPollResults,
   findPollsByRoomId,
 } from "@/application/queries";
+import { finalizeExpiredPoll } from "@/application/support/finalize-expired-poll";
 
 const CreatePollBody = Schema.Struct({
   title: Schema.NonEmptyString,
@@ -128,6 +130,7 @@ pollRoutes.get("/:id/dishes", async (c) => {
 
   const program = Effect.gen(function* () {
     const params = yield* decodeGetPollParams(rawParams);
+    yield* finalizeExpiredPoll(params.id);
     return yield* findPollDishesByPollId(params.id);
   });
 
@@ -140,10 +143,17 @@ pollRoutes.get("/:id/responses", async (c) => {
   const rawParams = {
     id: c.req.param("id"),
   };
+  const rawHeaders = {
+    userId: c.req.header("x-user-id"),
+  };
 
   const program = Effect.gen(function* () {
     const params = yield* decodeGetPollParams(rawParams);
-    return yield* findPollResponsesByPollId(params.id);
+    const headers = yield* decodeJoinPollHeaders(rawHeaders);
+    const poll = yield* finalizeExpiredPoll(params.id);
+    const responses = yield* findPollResponsesByPollId(params.id);
+
+    return responses.filter((response) => response.userId === headers.userId || !poll.isActive);
   });
 
   const responses = await runEffect(c, program);
@@ -178,6 +188,21 @@ pollRoutes.post("/:id/respond", async (c) => {
   return c.json(result, 200);
 });
 
+pollRoutes.get("/:id/results", async (c) => {
+  const rawParams = {
+    id: c.req.param("id"),
+  };
+
+  const program = Effect.gen(function* () {
+    const params = yield* decodeGetPollParams(rawParams);
+    return yield* getPollResults(params.id);
+  });
+
+  const result = await runEffect(c, program);
+
+  return c.json(result, 200);
+});
+
 pollRoutes.post("/:id/finish", async (c) => {
   const rawParams = {
     id: c.req.param("id"),
@@ -202,6 +227,7 @@ pollRoutes.get("/:id", async (c) => {
 
   const program = Effect.gen(function* () {
     const params = yield* decodeGetPollParams(rawParams);
+    yield* finalizeExpiredPoll(params.id);
     return yield* findPollByPollId(params.id);
   });
 

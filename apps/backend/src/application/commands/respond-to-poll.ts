@@ -13,7 +13,9 @@ import {
   PollReaction,
   UserId,
   makeDishId,
+  pollReaction,
 } from "@/domain/value-objects";
+import { finalizeExpiredPoll } from "@/application/support/finalize-expired-poll";
 
 const RespondToPollInput = Schema.Struct({
   pollId: PollId,
@@ -44,7 +46,7 @@ export function respondToPoll(
 > {
   return Effect.gen(function* () {
     const repo = yield* PollRepository;
-    const poll = yield* repo.findById(input.pollId);
+    const poll = yield* finalizeExpiredPoll(input.pollId);
 
     if (!poll.isActive) {
       return yield* Effect.fail(
@@ -84,8 +86,13 @@ export function respondToPoll(
     yield* repo.upsertResponse(response);
 
     const responses = yield* repo.findResponsesByPollId(input.pollId);
+    const completedResponses = responses.filter(
+      (response) => response.reaction !== pollReaction.skip,
+    );
     const requiredResponses = poll.participants.length * dishes.length;
-    const isComplete = responses.length >= requiredResponses || Date.now() >= poll.deadlineAt.getTime();
+    const isComplete =
+      completedResponses.length >= requiredResponses ||
+      Date.now() >= poll.deadlineAt.getTime();
 
     let winnerDishId: DishId | null = null;
 

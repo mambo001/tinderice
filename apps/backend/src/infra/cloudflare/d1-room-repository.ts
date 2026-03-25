@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
 
-import { Room } from "@/domain/entities";
+import { Room, RoomPresence } from "@/domain/entities";
 import { RoomRepository } from "@/domain/ports";
 import { DatabaseError, RoomNotFoundError } from "@/domain/errors";
 import { D1DatabaseTag } from "@/shared/config/env";
@@ -11,6 +11,12 @@ interface RoomRow {
   name: string;
   members: string;
   createdAt: number;
+}
+
+interface RoomPresenceRow {
+  roomId: string;
+  userId: string;
+  lastSeenAt: number;
 }
 
 const encodeRoom = Schema.encode(Room);
@@ -58,6 +64,7 @@ export const D1RoomRepositoryLive = Layer.effect(
       });
 
     const decodeRoomRows = Schema.decodeUnknown(Schema.Array(Room));
+    const decodePresenceRows = Schema.decodeUnknown(Schema.Array(RoomPresence));
 
     const findByOwnerId = (ownerId: string) =>
       Effect.gen(function* () {
@@ -179,6 +186,49 @@ export const D1RoomRepositoryLive = Layer.effect(
         });
       });
 
+    const touchPresence = (roomId: string, userId: string, lastSeenAt: Date) =>
+      Effect.gen(function* () {
+        yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `INSERT INTO room_presence (roomId, userId, lastSeenAt)
+                 VALUES (?, ?, ?)
+                 ON CONFLICT(roomId, userId)
+                 DO UPDATE SET lastSeenAt = excluded.lastSeenAt`,
+              )
+              .bind(roomId, userId, lastSeenAt.getTime())
+              .run(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to update room presence: ${err}`,
+            }),
+        });
+      });
+
+    const findPresenceByRoomId = (roomId: string) =>
+      Effect.gen(function* () {
+        const rows = yield* Effect.tryPromise({
+          try: () =>
+            db
+              .prepare(
+                `SELECT roomId, userId, lastSeenAt
+                 FROM room_presence
+                 WHERE roomId = ?
+                   AND lastSeenAt >= ?
+                 ORDER BY lastSeenAt DESC`,
+              )
+              .bind(roomId, Date.now() - 60_000)
+              .all<RoomPresenceRow>(),
+          catch: (err) =>
+            new DatabaseError({
+              message: `Failed to query room presence: ${err}`,
+            }),
+        });
+
+        return yield* decodePresenceRows(rows.results);
+      });
+
     const deleteRoom = (id: string) =>
       Effect.gen(function* () {
         yield* Effect.tryPromise({
@@ -196,6 +246,8 @@ export const D1RoomRepositoryLive = Layer.effect(
       findByOwnerId,
       findByMemberId,
       addMember,
+      touchPresence,
+      findPresenceByRoomId,
       save: saveRoom,
       delete: deleteRoom,
     });

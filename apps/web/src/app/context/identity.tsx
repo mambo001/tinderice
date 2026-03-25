@@ -40,15 +40,10 @@ export function IdentityContextProvider(props: PropsWithChildren) {
         throw new Error("Failed to fetch identity");
       }
       const json = await response.json();
-      console.log({ json });
       return decodeIdentity(json);
     },
   });
   const identity = data || null;
-
-  console.log({ API_URL });
-  console.log("import.meta.env: ", import.meta.env);
-  console.log("import.meta.env.VITE_API_URL: ", import.meta.env.VITE_API_URL);
 
   return (
     <IdentityContext.Provider value={{ identity }}>

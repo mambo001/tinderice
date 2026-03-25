@@ -1,38 +1,36 @@
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import ArrowOutwardOutlinedIcon from "@mui/icons-material/ArrowOutwardOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
+import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
+import MeetingRoomOutlinedIcon from "@mui/icons-material/MeetingRoomOutlined";
 import {
+  Button,
   Card,
+  CardActionArea,
   CardContent,
+  Chip,
+  CircularProgress,
   Container,
   Stack,
+  TextField,
   Typography,
-  CardActionArea,
-  Button,
-  CircularProgress,
-  Chip,
 } from "@mui/material";
-import { type PropsWithChildren, useMemo } from "react";
-import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
+import { type PropsWithChildren, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useQueries } from "@tanstack/react-query";
-import { Schema } from "effect";
 
 import { useIdentityContext } from "@/app/context/identity";
 import { useRoomContext } from "@/app/context/room";
 
-const API_URL = import.meta.env.VITE_API_URL;
+function formatTimeLeft(deadlineAt: string) {
+  const remainingMs = new Date(deadlineAt).getTime() - Date.now();
 
-const Poll = Schema.Struct({
-  id: Schema.String,
-  roomId: Schema.String,
-  ownerId: Schema.String,
-  title: Schema.String,
-  participants: Schema.Array(Schema.String),
-  winnerDishId: Schema.NullOr(Schema.String),
-  startedAt: Schema.String,
-  endedAt: Schema.NullOr(Schema.String),
-  isActive: Schema.Boolean,
-});
+  if (remainingMs <= 0) {
+    return "Ending now";
+  }
 
-const decodePolls = Schema.decodeUnknownSync(Schema.Array(Poll));
+  const totalMinutes = Math.ceil(remainingMs / 60_000);
+  return `${totalMinutes} min left`;
+}
 
 export function Home() {
   const navigate = useNavigate();
@@ -40,58 +38,27 @@ export function Home() {
   const {
     ownedRooms,
     memberRooms,
-    rooms,
+    allActivePolls,
     isOwnedRoomsLoading,
     isMemberRoomsLoading,
+    isAllActivePollsLoading,
   } = useRoomContext();
+  const [inviteLink, setInviteLink] = useState("");
 
-  const activePollResults = useQueries({
-    queries: rooms.map((room) => ({
-      queryKey: ["polls", "room", room.id],
-      enabled: rooms.length > 0,
-      queryFn: async () => {
-        const response = await fetch(`${API_URL}/poll/room/${room.id}`, {
-          method: "GET",
-        });
+  const roomCount = ownedRooms.length + memberRooms.length;
+  const activePollCount = allActivePolls.length;
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch polls for room ${room.id}`);
-        }
-
-        const json = await response.json();
-        return decodePolls(json).filter((poll) => poll.isActive);
-      },
-    })),
-  });
-
-  const activePollsLoading =
-    isOwnedRoomsLoading ||
-    isMemberRoomsLoading ||
-    activePollResults.some((result) => result.isLoading);
-
-  const activePolls = useMemo(
+  const sortedActivePolls = useMemo(
     () =>
-      activePollResults.flatMap((result, index) => {
-        const room = rooms[index];
-
-        if (!room || !result.data) {
-          return [];
-        }
-
-        return result.data.map((poll) => ({
-          ...poll,
-          participants: [...poll.participants],
-          roomName: room.name,
-        }));
-      }),
-    [activePollResults, rooms],
+      [...allActivePolls].sort(
+        (left, right) =>
+          new Date(left.deadlineAt).getTime() -
+          new Date(right.deadlineAt).getTime(),
+      ),
+    [allActivePolls],
   );
 
-  const handleRoomClick = (roomId: string) => {
-    navigate(`/room/${roomId}`);
-  };
-
-  const handleCreateRoomClick = async () => {
+  const handleCreateRoomClick = () => {
     navigate("/room/create");
   };
 
@@ -99,54 +66,125 @@ export function Home() {
     navigate(`/poll/${pollId}`);
   };
 
+  const handleRoomClick = (roomId: string) => {
+    navigate(`/room/${roomId}`);
+  };
+
+  const handleJoinInvite = () => {
+    if (!inviteLink.trim()) {
+      return;
+    }
+
+    const normalized = inviteLink.trim();
+
+    if (normalized.startsWith("#")) {
+      navigate(normalized.slice(1));
+      return;
+    }
+
+    const inviteMarker = "#/invite/poll/";
+    const markerIndex = normalized.indexOf(inviteMarker);
+
+    if (markerIndex >= 0) {
+      navigate(normalized.slice(markerIndex + 1));
+      return;
+    }
+
+    navigate(normalized);
+  };
+
   return (
     <HomeLayout>
-      <Typography variant="h5">
-        Welcome, {identity ? identity.name : `<someone>`}
-      </Typography>
-      <Typography>Quick Actions</Typography>
-      <Stack gap={1}>
-        <Card>
-          <CardActionArea onClick={() => console.log("")}>
-            <CardContent>
-              <Stack justifyContent={"space-between"} direction={"row"}>
-                <Typography>Start Instant Poll</Typography>
-                <ChevronRightOutlinedIcon />
+      <Stack gap={2.5}>
+        <Stack direction="row" gap={1} flexWrap="wrap">
+          <Chip
+            icon={<PollOutlinedIcon />}
+            label={`${activePollCount} active polls`}
+          />
+          <Chip
+            icon={<MeetingRoomOutlinedIcon />}
+            label={`${roomCount} rooms`}
+            variant="outlined"
+          />
+        </Stack>
+
+        <Card variant="outlined">
+          <CardContent>
+            <Stack gap={2.5}>
+              <Stack gap={0.75}>
+                <Typography variant="h6">Start here</Typography>
+                <Typography color="text.secondary">
+                  Pick the next move and keep the group momentum going.
+                </Typography>
               </Stack>
-            </CardContent>
-          </CardActionArea>
-        </Card>
-        <Card>
-          <CardActionArea onClick={handleCreateRoomClick}>
-            <CardContent>
-              <Stack justifyContent={"space-between"} direction={"row"}>
-                <Typography>Create Room</Typography>
-                <ChevronRightOutlinedIcon />
+
+              <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<AddOutlinedIcon />}
+                  onClick={handleCreateRoomClick}
+                >
+                  Create room
+                </Button>
               </Stack>
-            </CardContent>
-          </CardActionArea>
+
+              <Stack gap={1.25}>
+                <Typography variant="subtitle2">Join with invite</Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} gap={1.25}>
+                  <TextField
+                    fullWidth
+                    placeholder="Paste an invite link"
+                    value={inviteLink}
+                    onChange={(event) => setInviteLink(event.target.value)}
+                  />
+                  <Button
+                    variant="outlined"
+                    startIcon={<LinkOutlinedIcon />}
+                    onClick={handleJoinInvite}
+                    disabled={!inviteLink.trim()}
+                  >
+                    Join
+                  </Button>
+                </Stack>
+              </Stack>
+            </Stack>
+          </CardContent>
         </Card>
+
+        <Stack gap={1}>
+          <Typography variant="h6">Active Polls</Typography>
+          <Typography color="text.secondary">
+            Resume the poll that needs attention first.
+          </Typography>
+        </Stack>
+        <ActivePollList
+          polls={sortedActivePolls}
+          isLoading={isAllActivePollsLoading}
+          onPollClick={handlePollClick}
+        />
+
+        <Stack gap={1}>
+          <Typography variant="h6">Your Rooms</Typography>
+          <Typography color="text.secondary">
+            Rooms you own and rooms you joined stay one tap away.
+          </Typography>
+        </Stack>
+        <RoomSection
+          title="Owned rooms"
+          rooms={ownedRooms}
+          isLoading={isOwnedRoomsLoading}
+          onRoomClick={handleRoomClick}
+          emptyLabel="No owned rooms yet"
+        />
+        <RoomSection
+          title="Joined rooms"
+          rooms={memberRooms}
+          isLoading={isMemberRoomsLoading}
+          onRoomClick={handleRoomClick}
+          emptyLabel="No joined rooms yet"
+        />
       </Stack>
-      <Typography>Active Polls</Typography>
-      <ActivePollList
-        polls={activePolls}
-        isLoading={activePollsLoading}
-        onPollClick={handlePollClick}
-      />
-      <Typography>Owned Rooms</Typography>
-      <RoomList
-        rooms={ownedRooms}
-        isLoading={isOwnedRoomsLoading}
-        onRoomClick={handleRoomClick}
-        emptyLabel="No owned rooms yet"
-      />
-      <Typography>Joined Rooms</Typography>
-      <RoomList
-        rooms={memberRooms}
-        isLoading={isMemberRoomsLoading}
-        onRoomClick={handleRoomClick}
-        emptyLabel="No joined rooms yet"
-      />
     </HomeLayout>
   );
 }
@@ -157,7 +195,8 @@ interface ActivePollListProps {
     title: string;
     roomId: string;
     roomName: string;
-    participants: string[];
+    deadlineAt: string;
+    participants: readonly string[];
   }>;
   isLoading: boolean;
   onPollClick: (pollId: string) => void;
@@ -166,15 +205,13 @@ interface ActivePollListProps {
 function ActivePollList(props: ActivePollListProps) {
   if (props.isLoading) {
     return (
-      <Stack gap={1}>
-        <Card>
-          <CardContent>
-            <Stack direction="row" justifyContent="center">
-              <CircularProgress size={24} />
-            </Stack>
-          </CardContent>
-        </Card>
-      </Stack>
+      <Card variant="outlined">
+        <CardContent>
+          <Stack alignItems="center" py={3}>
+            <CircularProgress size={24} />
+          </Stack>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -182,36 +219,94 @@ function ActivePollList(props: ActivePollListProps) {
     return (
       <Card variant="outlined">
         <CardContent>
-          <Typography color="text.secondary">
-            No active polls across your rooms right now
-          </Typography>
+          <Stack gap={0.75}>
+            <Typography fontWeight={600}>No active polls right now</Typography>
+            <Typography color="text.secondary">
+              Create a room or wait for a new invite to kick off the next
+              decision.
+            </Typography>
+          </Stack>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Stack gap={1}>
+    <Stack gap={1.25}>
       {props.polls.map((poll) => (
-        <Card key={poll.id}>
+        <Card key={poll.id} variant="outlined">
           <CardActionArea onClick={() => props.onPollClick(poll.id)}>
             <CardContent>
               <Stack gap={1.5}>
-                <Stack justifyContent="space-between" direction="row" gap={1.5}>
-                  <Typography fontWeight={600}>{poll.title}</Typography>
-                  <ChevronRightOutlinedIcon />
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  gap={1.5}
+                >
+                  <Stack gap={0.5}>
+                    <Typography fontWeight={600}>{poll.title}</Typography>
+                    <Typography color="text.secondary">
+                      {poll.roomName}
+                    </Typography>
+                  </Stack>
+                  <Stack
+                    direction="row"
+                    gap={1}
+                    flexWrap="wrap"
+                    alignItems="center"
+                  >
+                    <Chip
+                      size="small"
+                      color="warning"
+                      label={formatTimeLeft(poll.deadlineAt)}
+                    />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={`${poll.participants.length} participants`}
+                    />
+                  </Stack>
                 </Stack>
-                <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
-                  <Chip size="small" label={poll.roomName} variant="outlined" />
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
                   <Typography variant="body2" color="text.secondary">
-                    {poll.participants.length} participants
+                    Resume voting before the timer runs out.
                   </Typography>
+                  <ArrowOutwardOutlinedIcon fontSize="small" />
                 </Stack>
               </Stack>
             </CardContent>
           </CardActionArea>
         </Card>
       ))}
+    </Stack>
+  );
+}
+
+interface RoomSectionProps {
+  title: string;
+  rooms: Array<{
+    id: string;
+    name: string;
+  }>;
+  isLoading: boolean;
+  onRoomClick: (roomId: string) => void;
+  emptyLabel: string;
+}
+
+function RoomSection(props: RoomSectionProps) {
+  return (
+    <Stack gap={1}>
+      <Typography variant="subtitle2">{props.title}</Typography>
+      <RoomList
+        rooms={props.rooms}
+        isLoading={props.isLoading}
+        onRoomClick={props.onRoomClick}
+        emptyLabel={props.emptyLabel}
+      />
     </Stack>
   );
 }
@@ -229,15 +324,13 @@ interface RoomListProps {
 function RoomList(props: RoomListProps) {
   if (props.isLoading) {
     return (
-      <Stack gap={1}>
-        <Card>
-          <CardContent>
-            <Stack direction="row" justifyContent="center">
-              <CircularProgress size={24} />
-            </Stack>
-          </CardContent>
-        </Card>
-      </Stack>
+      <Card variant="outlined">
+        <CardContent>
+          <Stack alignItems="center" py={3}>
+            <CircularProgress size={24} />
+          </Stack>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -254,12 +347,16 @@ function RoomList(props: RoomListProps) {
   return (
     <Stack gap={1}>
       {props.rooms.map((room) => (
-        <Card key={room.id}>
+        <Card key={room.id} variant="outlined">
           <CardActionArea onClick={() => props.onRoomClick(room.id)}>
             <CardContent>
-              <Stack justifyContent={"space-between"} direction={"row"}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+              >
                 <Typography>{room.name}</Typography>
-                <ChevronRightOutlinedIcon />
+                <ArrowOutwardOutlinedIcon fontSize="small" />
               </Stack>
             </CardContent>
           </CardActionArea>
@@ -272,12 +369,14 @@ function RoomList(props: RoomListProps) {
 export function HomeSkeleton() {
   return (
     <HomeLayout>
-      <Stack gap={2}>
-        <Typography variant="h5">Loading...</Typography>
-        <Button disabled variant="outlined">
-          Loading home
-        </Button>
-      </Stack>
+      <Card variant="outlined">
+        <CardContent>
+          <Stack gap={2}>
+            <Typography variant="h5">Loading home...</Typography>
+            <CircularProgress size={24} />
+          </Stack>
+        </CardContent>
+      </Card>
     </HomeLayout>
   );
 }
@@ -296,7 +395,7 @@ export function HomeLayout(props: PropsWithChildren) {
         },
       }}
     >
-      <Stack marginTop={6} paddingBottom={8} gap={2}>
+      <Stack marginTop={2} paddingBottom={8} gap={2}>
         {props.children}
       </Stack>
     </Container>

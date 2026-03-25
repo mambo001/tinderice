@@ -1,6 +1,6 @@
 import { Context, Effect, ParseResult } from "effect";
 
-import { Room } from "@/domain/entities";
+import { Room, RoomPresence } from "@/domain/entities";
 import { DatabaseError, RoomNotFoundError } from "@/domain/errors";
 
 export interface RoomRepository {
@@ -26,6 +26,17 @@ export interface RoomRepository {
     roomId: string,
     userId: string,
   ) => Effect.Effect<void, DatabaseError>;
+  readonly touchPresence: (
+    roomId: string,
+    userId: string,
+    lastSeenAt: Date,
+  ) => Effect.Effect<void, DatabaseError>;
+  readonly findPresenceByRoomId: (
+    roomId: string,
+  ) => Effect.Effect<
+    readonly RoomPresence[],
+    DatabaseError | ParseResult.ParseError
+  >;
   readonly save: (
     room: Room,
   ) => Effect.Effect<void, DatabaseError | ParseResult.ParseError>;

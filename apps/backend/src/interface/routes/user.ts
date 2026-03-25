@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 
 import { runEffect } from "../../app";
 import type { Env } from "@/shared/config";
-import { findByUserId } from "@/application/queries";
+import { findByUserId, findUsersByIds } from "@/application/queries";
 import { createUser, findOrCreateUser } from "@/application/commands";
 import { UserId } from "@/domain/value-objects";
 
@@ -24,9 +24,14 @@ const CheckClientIdHeaders = Schema.Struct({
   clientId: Schema.NonEmptyString,
 });
 
+const LookupUsersBody = Schema.Struct({
+  ids: Schema.Array(UserId),
+});
+
 const decodeCreateUserBody = Schema.decodeUnknown(CreateUserBody);
 const decodeCreateUserHeaders = Schema.decodeUnknown(CreateUserHeaders);
 const decodeGetUserParams = Schema.decodeUnknown(GetUserParams);
+const decodeLookupUsersBody = Schema.decodeUnknown(LookupUsersBody);
 
 export const userRoutes = new Hono<{ Bindings: Env }>();
 
@@ -56,8 +61,6 @@ userRoutes.get("/client-id", async (c) => {
   const rawHeaders = {
     clientId: c.req.header("X-Client-ID"),
   };
-  console.log(`request: ${JSON.stringify(c.req, null, 2)}`);
-  console.log(`request-header: ${c.req.header("X-Client-ID")}`);
   const program = Effect.gen(function* () {
     const headers =
       yield* Schema.decodeUnknown(CheckClientIdHeaders)(rawHeaders);
@@ -82,4 +85,17 @@ userRoutes.get("/:id", async (c) => {
   const user = await runEffect(c, program);
 
   return c.json(user);
+});
+
+userRoutes.post("/lookup", async (c) => {
+  const rawBody = await c.req.json();
+
+  const program = Effect.gen(function* () {
+    const body = yield* decodeLookupUsersBody(rawBody);
+    return yield* findUsersByIds(body.ids);
+  });
+
+  const users = await runEffect(c, program);
+
+  return c.json(users);
 });
