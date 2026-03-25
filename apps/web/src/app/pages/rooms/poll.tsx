@@ -98,15 +98,15 @@ export function Poll() {
   }, [poll?.deadlineAt, poll?.isActive]);
 
   const userResponses = useMemo(
-    () =>
-      pollResponses.filter((response) => response.userId === identity?.id),
+    () => pollResponses.filter((response) => response.userId === identity?.id),
     [identity?.id, pollResponses],
   );
 
   const currentDish = useMemo(
     () =>
       pollDishes.find(
-        (dish) => !userResponses.some((response) => response.dishId === dish.dishId),
+        (dish) =>
+          !userResponses.some((response) => response.dishId === dish.dishId),
       ) ?? null,
     [pollDishes, userResponses],
   );
@@ -125,7 +125,6 @@ export function Poll() {
       if (navigator.share) {
         await navigator.share({
           title: poll?.title ?? "Join my poll",
-          text: "Join this poll on Tinderice",
           url: inviteUrl,
         });
       } else {
@@ -151,7 +150,10 @@ export function Poll() {
         reaction,
       });
 
-      await Promise.all([getPollById(pollId), getPollResponsesByPollId(pollId)]);
+      await Promise.all([
+        getPollById(pollId),
+        getPollResponsesByPollId(pollId),
+      ]);
 
       if (result.isComplete) {
         await getPollById(pollId);
@@ -175,7 +177,8 @@ export function Poll() {
     }
   };
 
-  const isLoading = isPollLoading || isPollDishesLoading || isPollResponsesLoading;
+  const isLoading =
+    isPollLoading || isPollDishesLoading || isPollResponsesLoading;
 
   return (
     <Container
@@ -203,12 +206,18 @@ export function Poll() {
             Poll ID: {pollId}
           </Typography>
           <Typography variant="h5">
-            {isPollLoading ? "Loading poll..." : poll?.title ?? "Untitled poll"}
+            {isPollLoading
+              ? "Loading poll..."
+              : (poll?.title ?? "Untitled poll")}
           </Typography>
           <Stack direction="row" gap={1} flexWrap="wrap">
             <Chip label={`${progressLabel} answered`} variant="outlined" />
             {poll?.isActive ? (
-              <Chip label={timeLabel || "Active"} color="warning" variant="outlined" />
+              <Chip
+                label={timeLabel || "Active"}
+                color="warning"
+                variant="outlined"
+              />
             ) : (
               <Chip label="Completed" color="success" variant="outlined" />
             )}
@@ -258,7 +267,9 @@ export function Poll() {
                       alt={winnerDish.dishName}
                     />
                     <CardContent>
-                      <Typography variant="h6">{winnerDish.dishName}</Typography>
+                      <Typography variant="h6">
+                        {winnerDish.dishName}
+                      </Typography>
                     </CardContent>
                   </Card>
                 ) : null}
@@ -278,23 +289,36 @@ export function Poll() {
                   />
                   <CardContent>
                     <Stack gap={1}>
-                      <Typography variant="overline">Dish {currentDish.position + 1}</Typography>
+                      <Typography variant="overline">
+                        Dish {currentDish.position + 1}
+                      </Typography>
                       <Typography gutterBottom variant="h5" component="div">
                         {currentDish.dishName}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        React quickly so the group can land on a winner in under five minutes.
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        React quickly so the group can land on a winner in under
+                        five minutes.
                       </Typography>
                     </Stack>
                   </CardContent>
                   <CardActions>
-                    <Stack flex={1} direction="row" justifyContent="center" gap={2}>
+                    <Stack
+                      flex={1}
+                      direction="row"
+                      justifyContent="center"
+                      gap={2}
+                    >
                       <IconButton
                         size="large"
                         onClick={() => handleReaction("skip")}
                         disabled={isRespondingToPoll}
                       >
-                        <RefreshOutlinedIcon sx={{ color: colors.yellow[600] }} />
+                        <RefreshOutlinedIcon
+                          sx={{ color: colors.yellow[600] }}
+                        />
                       </IconButton>
                       <IconButton
                         size="large"
@@ -330,7 +354,8 @@ export function Poll() {
           <Card variant="outlined">
             <CardContent>
               <Typography color="text.secondary">
-                You have answered all available dishes. Waiting for the poll to finish.
+                You have answered all available dishes. Waiting for the poll to
+                finish.
               </Typography>
             </CardContent>
           </Card>
