@@ -8,13 +8,11 @@ import {
   Chip,
   Collapse,
   Container,
-  LinearProgress,
   Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
 import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
-import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -69,6 +67,7 @@ function ReactionButton(props: ReactionButtonProps) {
       onClick={props.onClick}
       disabled={props.disabled}
       sx={{
+        flex: 1,
         minHeight: 76,
         borderRadius: 3,
         borderColor: "divider",
@@ -232,11 +231,7 @@ function PollBottomDrawer(props: {
                   <Card key={result.dishId} variant="outlined">
                     <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
                       <Stack gap={0.75}>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          gap={1.5}
-                        >
+                        <Stack direction="row" justifyContent="space-between">
                           <Typography fontWeight={600}>
                             {index + 1}. {result.dishName}
                           </Typography>
@@ -428,10 +423,6 @@ export function Poll() {
     [userResponses],
   );
 
-  const progressValue = pollDishes.length
-    ? (completedResponses / pollDishes.length) * 100
-    : 0;
-
   const winnerDish = useMemo(
     () => pollDishes.find((dish) => dish.dishId === poll?.winnerDishId) ?? null,
     [poll?.winnerDishId, pollDishes],
@@ -532,61 +523,12 @@ export function Poll() {
         sx={{
           minHeight: "calc(100svh - 120px)",
           pt: 1,
-          pb: 2,
+          pb: 8,
         }}
         justifyContent="space-between"
         gap={2}
       >
         <Stack gap={2} sx={{ flex: 1 }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="flex-start"
-            gap={1.5}
-          >
-            <Button
-              variant="text"
-              onClick={() => navigate(-1)}
-              startIcon={<KeyboardBackspaceOutlinedIcon />}
-              sx={{ alignSelf: "flex-start" }}
-            >
-              Back
-            </Button>
-            <Stack
-              direction="row"
-              gap={1}
-              flexWrap="wrap"
-              justifyContent="flex-end"
-            >
-              <Chip
-                variant="outlined"
-                label={`${completedResponses}/${pollDishes.length || 20}`}
-                sx={{ backgroundColor: "rgba(255,255,255,0.94)" }}
-              />
-              {poll?.deadlineAt && poll?.isActive ? (
-                <PollOverlayTimer deadlineAt={poll.deadlineAt} />
-              ) : poll ? (
-                <Chip
-                  label="Completed"
-                  color="success"
-                  sx={{ backgroundColor: "rgba(255,255,255,0.94)" }}
-                />
-              ) : null}
-            </Stack>
-          </Stack>
-
-          <Box>
-            <LinearProgress
-              variant="determinate"
-              value={progressValue}
-              sx={{
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: "rgba(34, 40, 49, 0.08)",
-              }}
-            />
-          </Box>
-
           {isInitialLoading ? (
             <PollStageSkeleton />
           ) : !poll?.isActive ? (
@@ -645,13 +587,17 @@ export function Poll() {
                         sx={{ flex: 1, minHeight: 0, objectFit: "cover" }}
                       />
                       <CardContent sx={{ pt: 2, pb: 2.5 }}>
-                        <Stack gap={0.75}>
+                        <Stack
+                          direction={"row"}
+                          justifyContent={"space-between"}
+                          alignItems={"center"}
+                        >
+                          <Typography variant="h4">
+                            {currentDish.dishName}
+                          </Typography>
                           <Typography variant="overline" color="text.secondary">
                             Dish {currentDish.position + 1} of{" "}
                             {pollDishes.length || 20}
-                          </Typography>
-                          <Typography variant="h4">
-                            {currentDish.dishName}
                           </Typography>
                         </Stack>
                       </CardContent>
@@ -675,7 +621,7 @@ export function Poll() {
                     </Typography>
                   ) : null}
                 </Stack>
-                <Stack direction="row" gap={1}>
+                <Stack direction="row" justifyContent={"stretch"} gap={1}>
                   <ReactionButton
                     icon={<RefreshOutlinedIcon fontSize="small" />}
                     label="Skip"
