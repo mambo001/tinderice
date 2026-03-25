@@ -248,7 +248,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
     const response = await fetch(`${API_URL}/room/owner/${identityId}`, {
       method: "GET",
       headers: {
-        "owner-id": identityId,
+        "x-owner-id": identityId,
       },
     });
 
@@ -561,8 +561,8 @@ export function RoomContextProvider(props: PropsWithChildren) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "owner-id": identityId,
-          "room-id": roomId,
+          "x-owner-id": identityId,
+          "x-room-id": roomId,
         },
         body: JSON.stringify({ title, participants }),
       });
