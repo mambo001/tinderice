@@ -87,10 +87,14 @@ const decodeRooms = Schema.decodeUnknownSync(Schema.Array(Room));
 const decodePoll = Schema.decodeUnknownSync(Poll);
 const decodePolls = Schema.decodeUnknownSync(Schema.Array(Poll));
 const decodePollDishes = Schema.decodeUnknownSync(Schema.Array(PollDish));
-const decodePollResponses = Schema.decodeUnknownSync(Schema.Array(PollResponse));
+const decodePollResponses = Schema.decodeUnknownSync(
+  Schema.Array(PollResponse),
+);
 const decodeCreateRoomResponse = Schema.decodeUnknownSync(CreateRoomResponse);
 const decodeCreatePollResponse = Schema.decodeUnknownSync(CreatePollResponse);
-const decodeRespondToPollResponse = Schema.decodeUnknownSync(RespondToPollResponse);
+const decodeRespondToPollResponse = Schema.decodeUnknownSync(
+  RespondToPollResponse,
+);
 
 interface CreateRoomInput {
   name: string;
@@ -217,9 +221,15 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const { identity } = useIdentityContext();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
-  const [selectedPollRoomId, setSelectedPollRoomId] = useState<string | null>(null);
-  const [selectedPollDishesId, setSelectedPollDishesId] = useState<string | null>(null);
-  const [selectedPollResponsesId, setSelectedPollResponsesId] = useState<string | null>(null);
+  const [selectedPollRoomId, setSelectedPollRoomId] = useState<string | null>(
+    null,
+  );
+  const [selectedPollDishesId, setSelectedPollDishesId] = useState<
+    string | null
+  >(null);
+  const [selectedPollResponsesId, setSelectedPollResponsesId] = useState<
+    string | null
+  >(null);
   const identityId = identity?.id ?? null;
 
   const fetchRoomById = useCallback(async (roomId: string): Promise<Room> => {
@@ -267,23 +277,29 @@ export function RoomContextProvider(props: PropsWithChildren) {
     return readJsonOrThrow(response, decodePoll);
   }, []);
 
-  const fetchPollsByRoomId = useCallback(async (roomId: string): Promise<Poll[]> => {
-    const response = await fetch(`${API_URL}/poll/room/${roomId}`, {
-      method: "GET",
-    });
+  const fetchPollsByRoomId = useCallback(
+    async (roomId: string): Promise<Poll[]> => {
+      const response = await fetch(`${API_URL}/poll/room/${roomId}`, {
+        method: "GET",
+      });
 
-    const polls = await readJsonOrThrow(response, decodePolls);
-    return polls.filter((poll) => poll.isActive);
-  }, []);
+      const polls = await readJsonOrThrow(response, decodePolls);
+      return polls.filter((poll) => poll.isActive);
+    },
+    [],
+  );
 
-  const fetchPollDishesByPollId = useCallback(async (pollId: string): Promise<PollDish[]> => {
-    const response = await fetch(`${API_URL}/poll/${pollId}/dishes`, {
-      method: "GET",
-    });
+  const fetchPollDishesByPollId = useCallback(
+    async (pollId: string): Promise<PollDish[]> => {
+      const response = await fetch(`${API_URL}/poll/${pollId}/dishes`, {
+        method: "GET",
+      });
 
-    const dishes = await readJsonOrThrow(response, decodePollDishes);
-    return [...dishes];
-  }, []);
+      const dishes = await readJsonOrThrow(response, decodePollDishes);
+      return [...dishes];
+    },
+    [],
+  );
 
   const fetchPollResponsesByPollId = useCallback(
     async (pollId: string): Promise<PollResponse[]> => {
@@ -370,7 +386,10 @@ export function RoomContextProvider(props: PropsWithChildren) {
   });
 
   const room = roomQuery.data ?? null;
-  const ownedRooms = useMemo(() => ownedRoomsQuery.data ?? [], [ownedRoomsQuery.data]);
+  const ownedRooms = useMemo(
+    () => ownedRoomsQuery.data ?? [],
+    [ownedRoomsQuery.data],
+  );
   const memberRooms = useMemo(
     () => memberRoomsQuery.data ?? [],
     [memberRoomsQuery.data],
@@ -493,6 +512,12 @@ export function RoomContextProvider(props: PropsWithChildren) {
         headers: {
           "Content-Type": "application/json",
           "owner-id": identity.id,
+          "Owner-Id": identity.id,
+          "OWNER-ID": identity.id,
+          "X-Owner-Id": identity.id,
+          "X-OWNER-ID": identity.id,
+          "Y-OWNER-ID": identity.id,
+          "Z-OWNER-ID": identity.id,
         },
         body: JSON.stringify({ name }),
       });
@@ -555,7 +580,9 @@ export function RoomContextProvider(props: PropsWithChildren) {
         return;
       }
 
-      const participants = Array.from(new Set([...variables.participants, identityId]));
+      const participants = Array.from(
+        new Set([...variables.participants, identityId]),
+      );
 
       const nextPoll = {
         id: createdPoll.id,
@@ -610,10 +637,18 @@ export function RoomContextProvider(props: PropsWithChildren) {
       });
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["rooms", "owned", identityId] }),
-        queryClient.invalidateQueries({ queryKey: ["rooms", "member", identityId] }),
-        queryClient.invalidateQueries({ queryKey: ["room", latestPoll.roomId] }),
-        queryClient.invalidateQueries({ queryKey: ["polls", "room", latestPoll.roomId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["rooms", "owned", identityId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["rooms", "member", identityId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["room", latestPoll.roomId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["polls", "room", latestPoll.roomId],
+        }),
       ]);
     },
   });
@@ -638,14 +673,18 @@ export function RoomContextProvider(props: PropsWithChildren) {
     onSuccess: async (_, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["poll", variables.pollId] }),
-        queryClient.invalidateQueries({ queryKey: ["poll", variables.pollId, "responses"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["poll", variables.pollId, "responses"],
+        }),
         queryClient.invalidateQueries({ queryKey: ["polls", "room"] }),
       ]);
     },
   });
 
   const finishPollMutation = useMutation({
-    mutationFn: async (pollId: string): Promise<{ winnerDishId: string | null }> => {
+    mutationFn: async (
+      pollId: string,
+    ): Promise<{ winnerDishId: string | null }> => {
       const response = await fetch(`${API_URL}/poll/${pollId}/finish`, {
         method: "POST",
       });
@@ -659,7 +698,9 @@ export function RoomContextProvider(props: PropsWithChildren) {
     onSuccess: async (_, pollId) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["poll", pollId] }),
-        queryClient.invalidateQueries({ queryKey: ["poll", pollId, "responses"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["poll", pollId, "responses"],
+        }),
       ]);
     },
   });
@@ -694,7 +735,8 @@ export function RoomContextProvider(props: PropsWithChildren) {
         createRoom: async (input) => createRoomMutation.mutateAsync(input),
         createPoll: async (input) => createPollMutation.mutateAsync(input),
         joinPoll: async (pollId) => joinPollMutation.mutateAsync(pollId),
-        respondToPoll: async (input) => respondToPollMutation.mutateAsync(input),
+        respondToPoll: async (input) =>
+          respondToPollMutation.mutateAsync(input),
         getRoomById,
         getOwnedRooms,
         getMemberRooms,

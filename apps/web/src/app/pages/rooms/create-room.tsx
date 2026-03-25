@@ -111,8 +111,6 @@ export function CreateRoom() {
             border: "1px solid",
             borderColor: "divider",
             overflow: "hidden",
-            background:
-              "linear-gradient(180deg, rgba(255,248,235,0.95) 0%, rgba(255,255,255,1) 36%)",
           }}
         >
           <Box
@@ -121,8 +119,6 @@ export function CreateRoom() {
               py: 2,
               borderBottom: "1px solid",
               borderColor: "divider",
-              background:
-                "linear-gradient(120deg, rgba(255,183,77,0.16) 0%, rgba(255,224,178,0.22) 100%)",
             }}
           >
             <Stack direction="row" justifyContent="space-between" gap={1.5}>

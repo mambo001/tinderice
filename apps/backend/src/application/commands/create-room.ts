@@ -2,8 +2,8 @@ import { Effect, ParseResult, Schema } from "effect";
 
 import { DatabaseError } from "@/domain/errors";
 import { RoomRepository, RoomIdGenerator } from "@/domain/ports";
-import { Room } from "@/domain/entities";
-import { UserId } from "@/domain/value-objects";
+import { Room, User } from "@/domain/entities";
+import { makeUserId, UserId } from "@/domain/value-objects";
 
 const CreateRoomInput = Schema.Struct({
   name: Schema.String,
@@ -39,6 +39,8 @@ export function createRoom(
     const now = new Date();
 
     const id = yield* idGenerator.next();
+    console.log("input: ", { input });
+    console.log("input.ownerId: ", input.ownerId);
     const ownerId = UserId.make(input.ownerId);
 
     const room = Room.make({

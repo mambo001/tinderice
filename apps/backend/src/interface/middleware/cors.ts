@@ -10,6 +10,9 @@ export const corsMiddleware = cors({
     "owner-id",
     "room-id",
     "user-id",
+    "x-owner-id",
+    "y-owner-id",
+    "z-owner-id",
   ],
   credentials: true,
 });
