@@ -1,5 +1,6 @@
 import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
 import {
@@ -15,10 +16,21 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { useRoomContext } from "@/app/context/room";
+
+function formatTimeLeft(deadlineAt: string) {
+  const remainingMs = new Date(deadlineAt).getTime() - Date.now();
+
+  if (remainingMs <= 0) {
+    return "Ending now";
+  }
+
+  const totalMinutes = Math.ceil(remainingMs / 60_000);
+  return `${totalMinutes} min left`;
+}
 
 export function Room() {
   const navigate = useNavigate();
@@ -38,6 +50,7 @@ export function Room() {
     isRoomMembersLoading,
     isRoomPresenceLoading,
   } = useRoomContext();
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -77,7 +90,8 @@ export function Room() {
 
   const members = useMemo(
     () =>
-      (room?.members ?? []).map((memberId) => {
+      (room?.members ?? [])
+        .map((memberId) => {
         const profile = roomMembers.find((member) => member.id === memberId);
         const isActive = roomPresence.some(
           (presence) => presence.userId === memberId,
@@ -89,7 +103,18 @@ export function Room() {
           isActive,
           isOwner: memberId === room?.ownerId,
         };
-      }),
+        })
+        .sort((left, right) => {
+          if (left.isActive !== right.isActive) {
+            return left.isActive ? -1 : 1;
+          }
+
+          if (left.isOwner !== right.isOwner) {
+            return left.isOwner ? -1 : 1;
+          }
+
+          return left.name.localeCompare(right.name);
+        }),
     [room?.members, room?.ownerId, roomMembers, roomPresence],
   );
 
@@ -97,6 +122,28 @@ export function Room() {
     () => members.filter((member) => member.isActive).length,
     [members],
   );
+
+  const handleInvitePeopleClick = () => {
+    const inviteUrl = `${window.location.origin}${window.location.pathname}#/invite/room/${roomId}`;
+
+    void (async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: room?.name ?? "Join my room",
+            text: "Join this room on Tinderice",
+            url: inviteUrl,
+          });
+        } else {
+          await navigator.clipboard.writeText(inviteUrl);
+        }
+
+        setShareMessage("Room invite ready to share");
+      } catch {
+        setShareMessage("Could not share room invite");
+      }
+    })();
+  };
 
   return (
     <Container
@@ -125,8 +172,7 @@ export function Room() {
             {isRoomLoading ? "Loading room..." : (room?.name ?? "Room")}
           </Typography>
           <Typography color="text.secondary">
-            Manage polls in this room, keep track of active voting, and see who
-            is inside.
+            {activeMemberCount} active now, {room?.members.length ?? 0} members, {activePolls.length} live polls.
           </Typography>
           {room ? (
             <Stack direction="row" gap={1} flexWrap="wrap">
@@ -141,6 +187,11 @@ export function Room() {
                 variant="outlined"
                 label={`${activeMemberCount} active now`}
               />
+              <Chip
+                size="small"
+                variant="outlined"
+                label={`${activePolls.length} live polls`}
+              />
             </Stack>
           ) : null}
         </Stack>
@@ -153,7 +204,15 @@ export function Room() {
           >
             Create Poll
           </Button>
+          <Button
+            variant="outlined"
+            startIcon={<LinkOutlinedIcon />}
+            onClick={handleInvitePeopleClick}
+          >
+            Invite People
+          </Button>
         </Stack>
+        {shareMessage ? <Chip size="small" label={shareMessage} variant="outlined" /> : null}
 
         <Card variant="outlined">
           <CardContent>
@@ -191,10 +250,18 @@ export function Room() {
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                {poll.participants.length} participants
+                                Voting now with {poll.participants.length} participants
                               </Typography>
                             </Box>
-                            <Chip size="small" label="Active" color="success" />
+                            <Stack gap={1} alignItems="flex-end">
+                              <Chip size="small" label="Active" color="success" />
+                              <Chip
+                                size="small"
+                                variant="outlined"
+                                color="warning"
+                                label={formatTimeLeft(poll.deadlineAt)}
+                              />
+                            </Stack>
                           </Stack>
                         </CardContent>
                       </CardActionArea>
@@ -238,7 +305,7 @@ export function Room() {
                             {member.isOwner
                               ? "Room owner"
                               : member.isActive
-                                ? "Member"
+                                ? "In the room now"
                                 : "Recently active"}
                           </Typography>
                         </Stack>

@@ -527,7 +527,10 @@ export function Poll() {
                   />
                 ) : null}
               </Card>
-              <Button variant="contained" onClick={() => navigate(-1)}>
+              <Button
+                variant="contained"
+                onClick={() => navigate(poll?.roomId ? `/room/${poll.roomId}` : "/")}
+              >
                 Back to room
               </Button>
             </Stack>

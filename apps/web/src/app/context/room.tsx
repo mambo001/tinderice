@@ -159,6 +159,7 @@ interface RoomContext {
   roomPresence: RoomPresence[];
   isCreatingRoom: boolean;
   isCreatingPoll: boolean;
+  isJoiningRoom: boolean;
   isJoiningPoll: boolean;
   isRespondingToPoll: boolean;
   isRoomLoading: boolean;
@@ -174,6 +175,7 @@ interface RoomContext {
   isRoomPresenceLoading: boolean;
   createRoom: (input: CreateRoomInput) => Promise<CreateRoomResponse>;
   createPoll: (input: CreatePollInput) => Promise<CreatePollResponse>;
+  joinRoom: (roomId: string) => Promise<void>;
   joinPoll: (pollId: string) => Promise<void>;
   respondToPoll: (input: PollReactionInput) => Promise<RespondToPollResponse>;
   getRoomById: (roomId: string) => Promise<Room>;
@@ -206,6 +208,7 @@ const RoomContext = createContext<RoomContext>({
   roomPresence: [],
   isCreatingRoom: false,
   isCreatingPoll: false,
+  isJoiningRoom: false,
   isJoiningPoll: false,
   isRespondingToPoll: false,
   isRoomLoading: false,
@@ -223,6 +226,9 @@ const RoomContext = createContext<RoomContext>({
     throw new Error("RoomContextProvider is not mounted");
   },
   createPoll: async () => {
+    throw new Error("RoomContextProvider is not mounted");
+  },
+  joinRoom: async () => {
     throw new Error("RoomContextProvider is not mounted");
   },
   joinPoll: async () => {
@@ -846,6 +852,32 @@ export function RoomContextProvider(props: PropsWithChildren) {
     },
   });
 
+  const joinRoomMutation = useMutation({
+    mutationFn: async (roomId: string): Promise<void> => {
+      if (!identityId) {
+        throw new Error("Identity is required to join a room");
+      }
+
+      const response = await fetch(`${API_URL}/room/${roomId}/join`, {
+        method: "POST",
+        headers: {
+          "x-user-id": identityId,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+    },
+    onSuccess: async (_, roomId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["rooms", "owned", identityId] }),
+        queryClient.invalidateQueries({ queryKey: ["rooms", "member", identityId] }),
+        queryClient.invalidateQueries({ queryKey: ["room", roomId] }),
+      ]);
+    },
+  });
+
   const joinPollMutation = useMutation({
     mutationFn: async (pollId: string): Promise<void> => {
       if (!identityId) {
@@ -944,6 +976,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
         roomPresence,
         isCreatingRoom: createRoomMutation.isPending,
         isCreatingPoll: createPollMutation.isPending,
+        isJoiningRoom: joinRoomMutation.isPending,
         isJoiningPoll: joinPollMutation.isPending,
         isRespondingToPoll: respondToPollMutation.isPending,
         isRoomLoading: roomQuery.isLoading || roomQuery.isFetching,
@@ -964,6 +997,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
           roomPresenceQuery.isLoading || roomPresenceQuery.isFetching,
         createRoom: async (input) => createRoomMutation.mutateAsync(input),
         createPoll: async (input) => createPollMutation.mutateAsync(input),
+        joinRoom: async (roomId) => joinRoomMutation.mutateAsync(roomId),
         joinPoll: async (pollId) => joinPollMutation.mutateAsync(pollId),
         respondToPoll: async (input) => respondToPollMutation.mutateAsync(input),
         getRoomById,

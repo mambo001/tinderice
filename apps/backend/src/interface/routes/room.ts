@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 
 import { runEffect } from "../../app";
 import type { Env } from "@/shared/config";
-import { createRoom, touchRoomPresence } from "@/application/commands";
+import { createRoom, joinRoom, touchRoomPresence } from "@/application/commands";
 import { RoomId, UserId } from "@/domain/value-objects";
 import {
   findRoomByRoomId,
@@ -32,11 +32,16 @@ const TouchRoomPresenceHeaders = Schema.Struct({
   userId: UserId,
 });
 
+const JoinRoomHeaders = Schema.Struct({
+  userId: UserId,
+});
+
 const decodeCreateRoomBody = Schema.decodeUnknown(CreateRoomBody);
 const decodeCreateRoomHeaders = Schema.decodeUnknown(CreateRoomHeaders);
 const decodeGetRoomParams = Schema.decodeUnknown(GetRoomParams);
 const decodeGetRoomsByUserParams = Schema.decodeUnknown(GetRoomsByUserParams);
 const decodeTouchRoomPresenceHeaders = Schema.decodeUnknown(TouchRoomPresenceHeaders);
+const decodeJoinRoomHeaders = Schema.decodeUnknown(JoinRoomHeaders);
 
 export const roomRoutes = new Hono<{ Bindings: Env }>();
 
@@ -105,6 +110,29 @@ roomRoutes.get("/:id", async (c) => {
   const user = await runEffect(c, program);
 
   return c.json(user);
+});
+
+roomRoutes.post("/:id/join", async (c) => {
+  const rawParams = {
+    id: c.req.param("id"),
+  };
+  const rawHeaders = {
+    userId: c.req.header("x-user-id"),
+  };
+
+  const program = Effect.gen(function* () {
+    const params = yield* decodeGetRoomParams(rawParams);
+    const headers = yield* decodeJoinRoomHeaders(rawHeaders);
+
+    return yield* joinRoom({
+      roomId: params.id,
+      userId: headers.userId,
+    });
+  });
+
+  const result = await runEffect(c, program);
+
+  return c.json(result, 200);
 });
 
 roomRoutes.get("/:id/presence", async (c) => {

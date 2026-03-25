@@ -12,6 +12,7 @@ import {
   Home,
   HomeSkeleton,
   InvitePoll,
+  InviteRoom,
   Poll,
   Room,
   Settings,
@@ -52,6 +53,7 @@ export function AppInternal() {
         <Route path="/room/create" element={<CreateRoom />} />
         <Route path="/room/:roomId" index element={<Room />} />
         <Route path="/room/:roomId/poll/create" element={<CreatePoll />} />
+        <Route path="/invite/room/:roomId" element={<InviteRoom />} />
         <Route path="/poll/:pollId" element={<Poll />} />
         <Route path="/invite/poll/:pollId" element={<InvitePoll />} />
         <Route path="/settings/" element={<Settings />} />
