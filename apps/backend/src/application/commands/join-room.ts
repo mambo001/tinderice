@@ -1,7 +1,7 @@
 import { Effect, ParseResult, Schema } from "effect";
 
 import { DatabaseError, RoomNotFoundError } from "@/domain/errors";
-import { RoomRepository } from "@/domain/ports";
+import { PollRepository, RoomRepository } from "@/domain/ports";
 import { RoomId, UserId } from "@/domain/value-objects";
 
 const JoinRoomInput = Schema.Struct({
@@ -23,13 +23,22 @@ export function joinRoom(
 ): Effect.Effect<
   JoinRoomOutput,
   DatabaseError | ParseResult.ParseError | RoomNotFoundError,
-  RoomRepository
+  RoomRepository | PollRepository
 > {
   return Effect.gen(function* () {
-    const repo = yield* RoomRepository;
+    const roomRepo = yield* RoomRepository;
+    const pollRepo = yield* PollRepository;
 
-    yield* repo.findById(input.roomId);
-    yield* repo.addMember(input.roomId, input.userId);
+    yield* roomRepo.findById(input.roomId);
+    yield* roomRepo.addMember(input.roomId, input.userId);
+
+    const polls = yield* pollRepo.findByRoomId(input.roomId);
+
+    yield* Effect.forEach(
+      polls.filter((poll) => poll.isActive),
+      (poll) => pollRepo.addParticipant(poll.id, input.userId),
+      { concurrency: "unbounded" },
+    );
 
     return {
       roomId: input.roomId,

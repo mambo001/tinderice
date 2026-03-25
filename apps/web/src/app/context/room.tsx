@@ -874,6 +874,8 @@ export function RoomContextProvider(props: PropsWithChildren) {
         queryClient.invalidateQueries({ queryKey: ["rooms", "owned", identityId] }),
         queryClient.invalidateQueries({ queryKey: ["rooms", "member", identityId] }),
         queryClient.invalidateQueries({ queryKey: ["room", roomId] }),
+        queryClient.invalidateQueries({ queryKey: ["polls", "room", roomId] }),
+        queryClient.invalidateQueries({ queryKey: ["polls"] }),
       ]);
     },
   });
