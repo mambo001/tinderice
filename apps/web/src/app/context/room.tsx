@@ -616,7 +616,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
       const response = await fetch(`${API_URL}/poll/${pollId}/join`, {
         method: "POST",
         headers: {
-          "user-id": identityId,
+          "x-user-id": identityId,
         },
       });
 
@@ -657,7 +657,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "user-id": identityId,
+          "x-user-id": identityId,
         },
         body: JSON.stringify({ dishId, reaction }),
       });
