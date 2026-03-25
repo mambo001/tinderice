@@ -99,43 +99,6 @@ function ReactionButton(props: ReactionButtonProps) {
   );
 }
 
-function PollOverlayTimer(props: { deadlineAt: string }) {
-  const time = getRemainingTime(props.deadlineAt, Date.now());
-
-  return (
-    <Box
-      sx={{
-        borderRadius: 999,
-        px: 1.5,
-        py: 1,
-        border: "1px solid",
-        borderColor: time.isCritical ? "error.main" : "divider",
-        backgroundColor: time.isCritical
-          ? "rgba(188, 71, 73, 0.12)"
-          : "rgba(255, 255, 255, 0.96)",
-        boxShadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
-        minWidth: 102,
-      }}
-    >
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ lineHeight: 1 }}
-      >
-        Time left
-      </Typography>
-      <Typography
-        variant="h6"
-        fontWeight={700}
-        color={time.isCritical ? "error.main" : "text.primary"}
-        sx={{ lineHeight: 1.1 }}
-      >
-        {time.shortLabel}
-      </Typography>
-    </Box>
-  );
-}
-
 function PollBottomDrawer(props: {
   open: boolean;
   onToggle: () => void;
@@ -424,12 +387,6 @@ export function Poll() {
     );
   }, [pollDishes, userResponses]);
 
-  const completedResponses = useMemo(
-    () =>
-      userResponses.filter((response) => response.reaction !== "skip").length,
-    [userResponses],
-  );
-
   const winnerDish = useMemo(
     () => pollDishes.find((dish) => dish.dishId === poll?.winnerDishId) ?? null,
     [poll?.winnerDishId, pollDishes],
@@ -532,7 +489,7 @@ export function Poll() {
       <Stack
         sx={{
           minHeight: "calc(100svh - 120px)",
-          pt: 1,
+          mt: 2,
           pb: 8,
         }}
         justifyContent="space-between"
