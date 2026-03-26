@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { useRoomContext } from "@/app/context/room";
+import { setLastVisitedRoomId } from "@/utils/room-navigation";
 
 function formatTimeLeft(deadlineAt: string) {
   const remainingMs = new Date(deadlineAt).getTime() - Date.now();
@@ -73,6 +74,8 @@ export function Room() {
     if (!roomId) {
       return;
     }
+
+    setLastVisitedRoomId(roomId);
 
     getRoomById(roomId);
     getPollsByRoomId(roomId);

@@ -7,6 +7,8 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { useNavigate, useLocation, useParams } from "react-router";
 import { Paper, Skeleton } from "@mui/material";
 
+import { getLastVisitedRoomId } from "@/utils/room-navigation";
+
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: <HomeOutlinedIcon />, show: true },
   {
@@ -40,7 +42,13 @@ export function BottomNavigation() {
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     const item = NAV_ITEMS[newValue];
     if (!item) return;
-    const path = item.path === "/room" ? `/room/${roomId}` : item.path;
+
+    const lastVisitedRoomId = roomId || getLastVisitedRoomId();
+    const path =
+      item.path === "/room" && lastVisitedRoomId
+        ? `/room/${lastVisitedRoomId}`
+        : item.path;
+
     navigate(path);
   };
 

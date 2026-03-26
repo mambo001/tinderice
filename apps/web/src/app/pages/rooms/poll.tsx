@@ -24,6 +24,7 @@ import { useNavigate, useParams } from "react-router";
 
 import { useIdentityContext } from "@/app/context/identity";
 import { useRoomContext } from "@/app/context/room";
+import { setLastVisitedRoomId } from "@/utils/room-navigation";
 
 type PollReaction = "dislike" | "like" | "superLike" | "skip";
 
@@ -323,6 +324,8 @@ export function Poll() {
     if (!poll?.roomId) {
       return;
     }
+
+    setLastVisitedRoomId(poll.roomId);
 
     void touchRoomPresence(poll.roomId);
 
