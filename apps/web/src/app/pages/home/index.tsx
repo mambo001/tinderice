@@ -18,7 +18,6 @@ import {
 import { type PropsWithChildren, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-import { useIdentityContext } from "@/app/context/identity";
 import { useRoomContext } from "@/app/context/room";
 
 function formatTimeLeft(deadlineAt: string) {
@@ -32,9 +31,36 @@ function formatTimeLeft(deadlineAt: string) {
   return `${totalMinutes} min left`;
 }
 
+function getInvitePath(value: string) {
+  const normalized = value.trim();
+
+  if (normalized.startsWith("#")) {
+    return normalized.slice(1);
+  }
+
+  if (normalized.startsWith("/")) {
+    return normalized;
+  }
+
+  try {
+    const url = new URL(normalized);
+
+    if (url.hash.startsWith("#/")) {
+      return url.hash.slice(1);
+    }
+
+    if (url.pathname.startsWith("/invite/")) {
+      return url.pathname;
+    }
+  } catch {
+    return normalized;
+  }
+
+  return normalized;
+}
+
 export function Home() {
   const navigate = useNavigate();
-  const { identity } = useIdentityContext();
   const {
     ownedRooms,
     memberRooms,
@@ -75,22 +101,7 @@ export function Home() {
       return;
     }
 
-    const normalized = inviteLink.trim();
-
-    if (normalized.startsWith("#")) {
-      navigate(normalized.slice(1));
-      return;
-    }
-
-    const inviteMarker = "#/invite/poll/";
-    const markerIndex = normalized.indexOf(inviteMarker);
-
-    if (markerIndex >= 0) {
-      navigate(normalized.slice(markerIndex + 1));
-      return;
-    }
-
-    navigate(normalized);
+    navigate(getInvitePath(inviteLink));
   };
 
   return (
