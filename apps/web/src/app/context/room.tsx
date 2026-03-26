@@ -13,6 +13,9 @@ import { Schema } from "effect";
 import { useIdentityContext } from "@/app/context/identity";
 
 const API_URL = import.meta.env.VITE_API_URL;
+const ROOM_REFRESH_INTERVAL_MS = 15000;
+const POLL_STATUS_REFRESH_INTERVAL_MS = 8000;
+const ROOM_PRESENCE_REFRESH_INTERVAL_MS = 15000;
 
 const Room = Schema.Struct({
   id: Schema.String,
@@ -469,6 +472,10 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const roomQuery = useQuery({
     queryKey: ["room", selectedRoomId],
     enabled: selectedRoomId !== null,
+    refetchInterval: ({ state }) => {
+      const room = state.data as Room | undefined;
+      return room?.members?.length ? ROOM_REFRESH_INTERVAL_MS : false;
+    },
     queryFn: async (): Promise<Room> => {
       if (!selectedRoomId) {
         throw new Error("Room id is required");
@@ -493,6 +500,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const activePollsQuery = useQuery({
     queryKey: ["polls", "room", selectedPollRoomId],
     enabled: selectedPollRoomId !== null,
+    refetchInterval: ROOM_REFRESH_INTERVAL_MS,
     queryFn: async (): Promise<Poll[]> => {
       if (!selectedPollRoomId) {
         throw new Error("Room id is required");
@@ -505,6 +513,10 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const pollQuery = useQuery({
     queryKey: ["poll", selectedPollId],
     enabled: selectedPollId !== null,
+    refetchInterval: ({ state }) => {
+      const poll = state.data as Poll | undefined;
+      return poll?.isActive ? POLL_STATUS_REFRESH_INTERVAL_MS : false;
+    },
     queryFn: async (): Promise<Poll> => {
       if (!selectedPollId) {
         throw new Error("Poll id is required");
@@ -553,6 +565,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const completedPollSummariesQuery = useQuery({
     queryKey: ["polls", "room", selectedCompletedPollRoomId, "completed"],
     enabled: selectedCompletedPollRoomId !== null,
+    refetchInterval: ROOM_REFRESH_INTERVAL_MS,
     queryFn: async (): Promise<PollSummary[]> => {
       if (!selectedCompletedPollRoomId) {
         throw new Error("Room id is required");
@@ -571,6 +584,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
   const roomPresenceQuery = useQuery({
     queryKey: ["room", selectedRoomPresenceId, "presence"],
     enabled: selectedRoomPresenceId !== null,
+    refetchInterval: ROOM_PRESENCE_REFRESH_INTERVAL_MS,
     queryFn: async (): Promise<RoomPresence[]> => {
       if (!selectedRoomPresenceId) {
         throw new Error("Room id is required");
@@ -1052,24 +1066,20 @@ export function RoomContextProvider(props: PropsWithChildren) {
         isJoiningRoom: joinRoomMutation.isPending,
         isJoiningPoll: joinPollMutation.isPending,
         isRespondingToPoll: respondToPollMutation.isPending,
-        isRoomLoading: roomQuery.isLoading || roomQuery.isFetching,
-        isOwnedRoomsLoading: ownedRoomsQuery.isLoading || ownedRoomsQuery.isFetching,
-        isMemberRoomsLoading: memberRoomsQuery.isLoading || memberRoomsQuery.isFetching,
-        isActivePollsLoading: activePollsQuery.isLoading || activePollsQuery.isFetching,
-        isCompletedPollSummariesLoading:
-          completedPollSummariesQuery.isLoading || completedPollSummariesQuery.isFetching,
+        isRoomLoading: roomQuery.isLoading,
+        isOwnedRoomsLoading: ownedRoomsQuery.isLoading,
+        isMemberRoomsLoading: memberRoomsQuery.isLoading,
+        isActivePollsLoading: activePollsQuery.isLoading,
+        isCompletedPollSummariesLoading: completedPollSummariesQuery.isLoading,
         isAllActivePollsLoading:
-          (ownedRoomsQuery.isLoading || ownedRoomsQuery.isFetching || memberRoomsQuery.isLoading || memberRoomsQuery.isFetching) &&
+          (ownedRoomsQuery.isLoading || memberRoomsQuery.isLoading) &&
           rooms.length > 0,
-        isPollLoading: pollQuery.isLoading || pollQuery.isFetching,
-        isPollDishesLoading: pollDishesQuery.isLoading || pollDishesQuery.isFetching,
-        isPollResponsesLoading:
-          pollResponsesQuery.isLoading || pollResponsesQuery.isFetching,
-        isPollResultsLoading: pollResultsQuery.isLoading || pollResultsQuery.isFetching,
-        isRoomMembersLoading:
-          roomMembersQuery.isLoading || roomMembersQuery.isFetching,
-        isRoomPresenceLoading:
-          roomPresenceQuery.isLoading || roomPresenceQuery.isFetching,
+        isPollLoading: pollQuery.isLoading,
+        isPollDishesLoading: pollDishesQuery.isLoading,
+        isPollResponsesLoading: pollResponsesQuery.isLoading,
+        isPollResultsLoading: pollResultsQuery.isLoading,
+        isRoomMembersLoading: roomMembersQuery.isLoading,
+        isRoomPresenceLoading: roomPresenceQuery.isLoading,
         createRoom: async (input) => createRoomMutation.mutateAsync(input),
         createPoll: async (input) => createPollMutation.mutateAsync(input),
         joinRoom: async (roomId) => joinRoomMutation.mutateAsync(roomId),

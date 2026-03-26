@@ -293,6 +293,7 @@ export function Poll() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [hasFetchedCompletedState, setHasFetchedCompletedState] = useState(false);
 
   const inviteUrl = useMemo(() => {
     const hashPath = `#/invite/poll/${pollId}`;
@@ -339,29 +340,40 @@ export function Poll() {
 
     const interval = window.setInterval(() => {
       setNow(Date.now());
-
-      if (new Date(poll.deadlineAt).getTime() <= Date.now()) {
-        void Promise.all([
-          getPollById(pollId),
-          getPollResponsesByPollId(pollId),
-          getPollResultsByPollId(pollId),
-        ]);
-      }
     }, 1000);
 
     return () => window.clearInterval(interval);
   }, [
-    getPollById,
-    getPollResponsesByPollId,
-    getPollResultsByPollId,
     poll?.deadlineAt,
     poll?.isActive,
-    pollId,
   ]);
 
   useEffect(() => {
     setNow(Date.now());
   }, [poll?.deadlineAt, poll?.isActive]);
+
+  useEffect(() => {
+    if (poll?.isActive) {
+      setHasFetchedCompletedState(false);
+      return;
+    }
+
+    if (!pollId || hasFetchedCompletedState) {
+      return;
+    }
+
+    setHasFetchedCompletedState(true);
+    void Promise.all([
+      getPollResponsesByPollId(pollId),
+      getPollResultsByPollId(pollId),
+    ]);
+  }, [
+    getPollResponsesByPollId,
+    getPollResultsByPollId,
+    hasFetchedCompletedState,
+    poll?.isActive,
+    pollId,
+  ]);
 
   const userResponses = useMemo(
     () => pollResponses.filter((response) => response.userId === identity?.id),
@@ -457,18 +469,17 @@ export function Poll() {
     }
   };
 
-  const isLoading =
-    isPollLoading ||
-    isPollDishesLoading ||
-    isPollResponsesLoading ||
-    isPollResultsLoading;
-
-  const isInitialLoading = isLoading && (!poll || pollDishes.length === 0);
+  const isInitialLoading =
+    !poll &&
+    (isPollLoading ||
+      isPollDishesLoading ||
+      isPollResponsesLoading ||
+      isPollResultsLoading);
 
   const isTransitionLoading =
     Boolean(poll?.isActive) &&
     !currentDish &&
-    (isRespondingToPoll || isPollResponsesLoading || isPollDishesLoading);
+    isRespondingToPoll;
 
   const timer = useMemo(
     () => (poll?.deadlineAt ? getRemainingTime(poll.deadlineAt, now) : null),

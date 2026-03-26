@@ -96,10 +96,7 @@ export function Room() {
     ]);
 
     const interval = window.setInterval(() => {
-      void Promise.all([
-        touchRoomPresence(roomId),
-        getRoomPresenceByRoomId(roomId),
-      ]);
+      void touchRoomPresence(roomId);
     }, 25_000);
 
     return () => window.clearInterval(interval);
@@ -164,7 +161,6 @@ export function Room() {
         if (navigator.share) {
           await navigator.share({
             title: room?.name ?? "Join my room",
-            text: "Join this room on Tinderice",
             url: inviteUrl,
           });
         } else {
@@ -200,7 +196,7 @@ export function Room() {
           >
             Back
           </Button>
-          <Chip label={`Room ${roomId.slice(0, 8)}`} variant="outlined" />
+          {/* <Chip label={`Room ${roomId.slice(0, 8)}`} variant="outlined" /> */}
           <Typography variant="h4">
             {isRoomLoading ? "Loading room..." : (room?.name ?? "Room")}
           </Typography>
