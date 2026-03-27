@@ -2,12 +2,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type PropsWithChildren,
 } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Schema } from "effect";
 
 import { useIdentityContext } from "@/app/context/identity";
@@ -640,28 +639,32 @@ export function RoomContextProvider(props: PropsWithChildren) {
     [memberRooms, ownedRooms],
   );
 
-  useEffect(() => {
-    void Promise.all(
-      rooms.map((room) =>
-        queryClient.prefetchQuery({
-          queryKey: ["polls", "room", room.id],
-          queryFn: () => fetchPollsByRoomId(room.id),
-        }),
-      ),
-    );
-  }, [fetchPollsByRoomId, queryClient, rooms]);
+  const roomPollQueries = useQueries({
+    queries: rooms.map((room) => ({
+      queryKey: ["polls", "room", room.id],
+      enabled: Boolean(identityId),
+      refetchInterval: ROOM_REFRESH_INTERVAL_MS,
+      queryFn: async (): Promise<Poll[]> => fetchPollsByRoomId(room.id),
+    })),
+  });
 
   const allActivePolls = useMemo(
     () =>
-      rooms.flatMap((room) => {
-        const polls = queryClient.getQueryData<Poll[]>(["polls", "room", room.id]) ?? [];
+      roomPollQueries.flatMap((pollQuery, index) => {
+        const room = rooms[index];
 
-        return polls.map((poll) => ({
+        if (!room) {
+          return [];
+        }
+
+        const polls = pollQuery.data ?? [];
+
+        return polls.filter((poll) => poll.isActive).map((poll) => ({
           ...poll,
           roomName: room.name,
         }));
       }),
-    [queryClient, rooms],
+    [roomPollQueries, rooms],
   );
 
   const getRoomById = useCallback(
@@ -742,7 +745,7 @@ export function RoomContextProvider(props: PropsWithChildren) {
     );
 
     return pollsByRoom.flatMap(({ roomName, polls }) =>
-      polls.map((poll) => ({
+      polls.filter((poll) => poll.isActive).map((poll) => ({
         ...poll,
         roomName,
       })),
@@ -1072,8 +1075,9 @@ export function RoomContextProvider(props: PropsWithChildren) {
         isActivePollsLoading: activePollsQuery.isLoading,
         isCompletedPollSummariesLoading: completedPollSummariesQuery.isLoading,
         isAllActivePollsLoading:
-          (ownedRoomsQuery.isLoading || memberRoomsQuery.isLoading) &&
-          rooms.length > 0,
+          ownedRoomsQuery.isLoading ||
+          memberRoomsQuery.isLoading ||
+          roomPollQueries.some((pollQuery) => pollQuery.isLoading),
         isPollLoading: pollQuery.isLoading,
         isPollDishesLoading: pollDishesQuery.isLoading,
         isPollResponsesLoading: pollResponsesQuery.isLoading,
