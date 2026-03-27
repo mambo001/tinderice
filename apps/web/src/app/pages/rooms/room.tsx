@@ -1,13 +1,17 @@
-import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import ArrowOutwardOutlinedIcon from "@mui/icons-material/ArrowOutwardOutlined";
+import CrownOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import {
   Alert,
   Avatar,
+  Badge,
   Box,
   Button,
   Card,
@@ -17,10 +21,18 @@ import {
   Collapse,
   Container,
   Divider,
+  IconButton,
+  Popover,
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import {
+  type MouseEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { useRoomContext } from "@/app/context/room";
@@ -46,6 +58,157 @@ function formatEndedAt(endedAt: string) {
   }).format(new Date(endedAt));
 }
 
+interface PollMetaItemProps {
+  icon: ReactNode;
+  label: string;
+}
+
+function PollMetaItem(props: PollMetaItemProps) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={0.5}
+      sx={{ color: "text.secondary" }}
+    >
+      {props.icon}
+      <Typography variant="caption" color="inherit">
+        {props.label}
+      </Typography>
+    </Stack>
+  );
+}
+
+function LiveMetaItem() {
+  return (
+    <Stack direction="row" alignItems="center" gap={0.5} sx={{ color: "success.main" }}>
+      <Box
+        sx={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          backgroundColor: "success.main",
+          flexShrink: 0,
+        }}
+      />
+      <Typography variant="caption" color="inherit">
+        Live
+      </Typography>
+    </Stack>
+  );
+}
+
+type ShareMessage = {
+  text: string;
+  severity: "success" | "error";
+};
+
+interface SectionHeaderProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}
+
+function SectionHeader(props: SectionHeaderProps) {
+  const [hoverAnchorEl, setHoverAnchorEl] = useState<HTMLElement | null>(null);
+  const [pinnedAnchorEl, setPinnedAnchorEl] = useState<HTMLElement | null>(
+    null,
+  );
+  const anchorEl = pinnedAnchorEl ?? hoverAnchorEl;
+  const isPinnedOpen = Boolean(pinnedAnchorEl);
+
+  const handleHoverOpen = (event: MouseEvent<HTMLElement>) => {
+    if (isPinnedOpen) {
+      return;
+    }
+
+    setHoverAnchorEl(event.currentTarget);
+  };
+
+  const handleToggle = (event: MouseEvent<HTMLElement>) => {
+    if (isPinnedOpen) {
+      setPinnedAnchorEl(null);
+      return;
+    }
+
+    event.currentTarget.blur();
+    setHoverAnchorEl(null);
+    setPinnedAnchorEl(event.currentTarget);
+  };
+
+  const handleHoverClose = () => {
+    if (isPinnedOpen) {
+      return;
+    }
+
+    setHoverAnchorEl(null);
+  };
+
+  const handleClose = () => {
+    setHoverAnchorEl(null);
+    setPinnedAnchorEl(null);
+  };
+
+  return (
+    <Stack direction="row" alignItems="center" gap={1}>
+      {props.icon}
+      <Typography variant="h6">{props.title}</Typography>
+      <IconButton
+        size="small"
+        aria-label={`More info about ${props.title}`}
+        onMouseEnter={handleHoverOpen}
+        onMouseLeave={handleHoverClose}
+        onClick={handleToggle}
+        sx={{ p: 0.5 }}
+      >
+        <InfoOutlinedIcon fontSize="small" />
+      </IconButton>
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        disableAutoFocus
+        disableEnforceFocus
+        disableRestoreFocus
+        disableScrollLock
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        slotProps={{
+          root: {
+            sx: {
+              pointerEvents: isPinnedOpen ? "auto" : "none",
+            },
+          },
+          paper: {
+            sx: {
+              mt: 0.5,
+              maxWidth: 260,
+              p: 1.25,
+              pointerEvents: isPinnedOpen ? "auto" : "none",
+            },
+            onMouseLeave: handleHoverClose,
+            onClick: () => {
+              if (isPinnedOpen) {
+                handleClose();
+              }
+            },
+          },
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          {props.description}
+        </Typography>
+      </Popover>
+    </Stack>
+  );
+}
+
 export function Room() {
   const navigate = useNavigate();
   const { roomId = "" } = useParams<{ roomId: string }>();
@@ -67,7 +230,7 @@ export function Room() {
     isRoomMembersLoading,
     isRoomPresenceLoading,
   } = useRoomContext();
-  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState<ShareMessage | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
@@ -111,21 +274,33 @@ export function Room() {
     touchRoomPresence,
   ]);
 
+  useEffect(() => {
+    if (!shareMessage) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setShareMessage(null);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [shareMessage]);
+
   const members = useMemo(
     () =>
       (room?.members ?? [])
         .map((memberId) => {
-        const profile = roomMembers.find((member) => member.id === memberId);
-        const isActive = roomPresence.some(
-          (presence) => presence.userId === memberId,
-        );
+          const profile = roomMembers.find((member) => member.id === memberId);
+          const isActive = roomPresence.some(
+            (presence) => presence.userId === memberId,
+          );
 
-        return {
-          id: memberId,
-          name: profile?.name ?? memberId,
-          isActive,
-          isOwner: memberId === room?.ownerId,
-        };
+          return {
+            id: memberId,
+            name: profile?.name ?? memberId,
+            isActive,
+            isOwner: memberId === room?.ownerId,
+          };
         })
         .sort((left, right) => {
           if (left.isActive !== right.isActive) {
@@ -170,9 +345,15 @@ export function Room() {
           await navigator.clipboard.writeText(inviteUrl);
         }
 
-        setShareMessage("Room invite ready to share");
+        setShareMessage({
+          text: "Invite link ready to share",
+          severity: "success",
+        });
       } catch {
-        setShareMessage("Could not share room invite");
+        setShareMessage({
+          text: "Could not share invite link",
+          severity: "error",
+        });
       }
     })();
   };
@@ -191,20 +372,10 @@ export function Room() {
       }}
     >
       <Stack marginTop={0} paddingBottom={8} gap={2.5}>
-        <Stack gap={1} alignItems="flex-start">
-          <Button
-            variant="text"
-            onClick={() => navigate(-1)}
-            startIcon={<KeyboardBackspaceOutlinedIcon />}
-          >
-            Back
-          </Button>
+        <Stack gap={0.75} alignItems="flex-start">
           {/* <Chip label={`Room ${roomId.slice(0, 8)}`} variant="outlined" /> */}
           <Typography variant="h4">
             {isRoomLoading ? "Loading room..." : (room?.name ?? "Room")}
-          </Typography>
-          <Typography color="text.secondary">
-            {activeMemberCount} active now, {room?.members.length ?? 0} members, {activePolls.length} live polls.
           </Typography>
           {room ? (
             <Stack direction="row" gap={1} flexWrap="wrap">
@@ -244,22 +415,27 @@ export function Room() {
             Invite People
           </Button>
         </Stack>
-        {shareMessage ? <Chip size="small" label={shareMessage} variant="outlined" /> : null}
+        {shareMessage ? (
+          <Alert severity={shareMessage.severity} variant="outlined">
+            {shareMessage.text}
+          </Alert>
+        ) : null}
 
         <Card variant="outlined">
           <CardContent>
-            <Stack gap={2}>
-              <Stack direction="row" alignItems="center" gap={1}>
-                <PollOutlinedIcon fontSize="small" />
-                <Typography variant="h6">Active Polls</Typography>
-              </Stack>
+            <Stack gap={1.75}>
+              <SectionHeader
+                icon={<PollOutlinedIcon fontSize="small" />}
+                title="Active Polls"
+                description="Jump back into the polls that still need votes."
+              />
               {isActivePollsLoading ? (
                 <Typography color="text.secondary">
                   Loading active polls...
                 </Typography>
               ) : activePolls.length === 0 ? (
                 <Typography color="text.secondary">
-                  No active polls yet. Create one to start voting.
+                  No active polls yet. Start one to get everyone voting.
                 </Typography>
               ) : (
                 <Stack gap={1}>
@@ -268,30 +444,46 @@ export function Room() {
                       <CardActionArea
                         onClick={() => navigate(`/poll/${poll.id}`)}
                       >
-                        <CardContent>
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            gap={2}
-                          >
-                            <Box>
+                        <CardContent sx={{ py: 1.5 }}>
+                          <Stack gap={0.75}>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              gap={1}
+                              flexWrap="wrap"
+                              alignItems="center"
+                            >
                               <Typography fontWeight={600}>
                                 {poll.title}
                               </Typography>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
+                              <Stack
+                                direction="row"
+                                gap={1}
+                                flexWrap="wrap"
+                                alignItems="center"
                               >
-                                Voting now with {poll.participants.length} participants
-                              </Typography>
-                            </Box>
-                            <Stack gap={1} alignItems="flex-end">
-                              <Chip size="small" label="Active" color="success" />
-                              <Chip
-                                size="small"
-                                variant="outlined"
-                                color="warning"
-                                label={formatTimeLeft(poll.deadlineAt)}
+                                <LiveMetaItem />
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  color="info"
+                                  label={formatTimeLeft(poll.deadlineAt)}
+                                />
+                              </Stack>
+                            </Stack>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                              gap={1}
+                            >
+                              <PollMetaItem
+                                icon={<PeopleOutlineOutlinedIcon sx={{ fontSize: 16 }} />}
+                                label={`${poll.participants.length} participants`}
+                              />
+                              <ArrowOutwardOutlinedIcon
+                                fontSize="small"
+                                sx={{ color: "text.secondary" }}
                               />
                             </Stack>
                           </Stack>
@@ -307,11 +499,12 @@ export function Room() {
 
         <Card variant="outlined">
           <CardContent>
-            <Stack gap={2}>
-              <Stack direction="row" alignItems="center" gap={1}>
-                <EmojiEventsOutlinedIcon fontSize="small" />
-                <Typography variant="h6">Recent Polls</Typography>
-              </Stack>
+            <Stack gap={1.75}>
+              <SectionHeader
+                icon={<EmojiEventsOutlinedIcon fontSize="small" />}
+                title="Recent Polls"
+                description="Review recent winners and reopen older results when you need them."
+              />
 
               {isCompletedPollSummariesLoading ? (
                 <Typography color="text.secondary">
@@ -326,24 +519,57 @@ export function Room() {
                   <Stack gap={1}>
                     {recentPolls.map((poll) => (
                       <Card key={poll.id} variant="outlined">
-                        <CardActionArea onClick={() => navigate(`/poll/${poll.id}`)}>
-                          <CardContent>
-                            <Stack gap={0.75}>
+                        <CardActionArea
+                          onClick={() => navigate(`/poll/${poll.id}`)}
+                        >
+                          <CardContent sx={{ py: 1.5 }}>
+                            <Stack gap={0.5}>
                               <Stack
-                                direction="row"
                                 justifyContent="space-between"
-                                gap={2}
+                                direction="row"
+                                gap={1.25}
+                                flex={1}
+                                flexWrap="wrap"
                                 alignItems="center"
                               >
-                                <Typography fontWeight={600}>{poll.title}</Typography>
-                                <Chip size="small" label="Completed" variant="outlined" />
+                                <Typography fontWeight={600}>
+                                  {poll.title}
+                                </Typography>
+                                <PollMetaItem
+                                  icon={
+                                    <EmojiEventsOutlinedIcon
+                                      sx={{ fontSize: 16 }}
+                                    />
+                                  }
+                                  label={
+                                    poll.winnerDishName ?? "No winner selected"
+                                  }
+                                />
                               </Stack>
-                              <Typography variant="body2" color="text.secondary">
-                                Winner: {poll.winnerDishName ?? "No winner selected"}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {poll.participantCount} participants · Ended {formatEndedAt(poll.endedAt)}
-                              </Typography>
+                              <Stack
+                                direction="row"
+                                gap={1.25}
+                                alignItems="center"
+                                justifyContent="space-between"
+                                flexWrap="wrap"
+                              >
+                                <PollMetaItem
+                                  icon={
+                                    <PeopleOutlineOutlinedIcon
+                                      sx={{ fontSize: 16 }}
+                                    />
+                                  }
+                                  label={`${poll.participantCount} participants`}
+                                />
+                                <PollMetaItem
+                                  icon={
+                                    <ScheduleOutlinedIcon
+                                      sx={{ fontSize: 16 }}
+                                    />
+                                  }
+                                  label={formatEndedAt(poll.endedAt)}
+                                />
+                              </Stack>
                             </Stack>
                           </CardContent>
                         </CardActionArea>
@@ -373,39 +599,73 @@ export function Room() {
                         endIcon={
                           <ExpandMoreOutlinedIcon
                             sx={{
-                              transform: historyOpen ? "rotate(180deg)" : "rotate(0deg)",
+                              transform: historyOpen
+                                ? "rotate(180deg)"
+                                : "rotate(0deg)",
                               transition: "transform 180ms ease",
                             }}
                           />
                         }
                       >
-                        See more
+                        {historyOpen ? "Hide older polls" : "Show older polls"}
                       </Button>
                       <Collapse in={historyOpen} timeout="auto" unmountOnExit>
-                        <CardContent>
+                        <CardContent sx={{ pt: 1.5 }}>
                           <Stack gap={1}>
                             {olderPolls.map((poll) => (
                               <Card key={poll.id} variant="outlined">
                                 <CardActionArea
                                   onClick={() => navigate(`/poll/${poll.id}`)}
                                 >
-                                  <CardContent>
-                                    <Stack gap={0.75}>
-                                      <Typography fontWeight={600}>
-                                        {poll.title}
-                                      </Typography>
-                                      <Typography
-                                        variant="body2"
-                                        color="text.secondary"
+                                  <CardContent sx={{ py: 1.5 }}>
+                                    <Stack gap={0.5}>
+                                      <Stack
+                                        justifyContent="space-between"
+                                        direction="row"
+                                        gap={1.25}
+                                        flex={1}
+                                        flexWrap="wrap"
+                                        alignItems="center"
                                       >
-                                        Winner: {poll.winnerDishName ?? "No winner selected"}
-                                      </Typography>
-                                      <Typography
-                                        variant="body2"
-                                        color="text.secondary"
+                                        <Typography fontWeight={600}>
+                                          {poll.title}
+                                        </Typography>
+                                        <PollMetaItem
+                                          icon={
+                                            <EmojiEventsOutlinedIcon
+                                              sx={{ fontSize: 16 }}
+                                            />
+                                          }
+                                          label={
+                                            poll.winnerDishName ??
+                                            "No winner selected"
+                                          }
+                                        />
+                                      </Stack>
+                                      <Stack
+                                        direction="row"
+                                        gap={1.25}
+                                        alignItems="center"
+                                        justifyContent="space-between"
+                                        flexWrap="wrap"
                                       >
-                                        {poll.participantCount} participants · Ended {formatEndedAt(poll.endedAt)}
-                                      </Typography>
+                                        <PollMetaItem
+                                          icon={
+                                            <PeopleOutlineOutlinedIcon
+                                              sx={{ fontSize: 16 }}
+                                            />
+                                          }
+                                          label={`${poll.participantCount} participants`}
+                                        />
+                                        <PollMetaItem
+                                          icon={
+                                            <ScheduleOutlinedIcon
+                                              sx={{ fontSize: 16 }}
+                                            />
+                                          }
+                                          label={formatEndedAt(poll.endedAt)}
+                                        />
+                                      </Stack>
                                     </Stack>
                                   </CardContent>
                                 </CardActionArea>
@@ -424,11 +684,12 @@ export function Room() {
 
         <Card variant="outlined">
           <CardContent>
-            <Stack gap={2}>
-              <Stack direction="row" alignItems="center" gap={1}>
-                <PeopleOutlineOutlinedIcon fontSize="small" />
-                <Typography variant="h6">Members</Typography>
-              </Stack>
+            <Stack gap={1.75}>
+              <SectionHeader
+                icon={<PeopleOutlineOutlinedIcon fontSize="small" />}
+                title="Members"
+                description="See who is in the room and who is active right now."
+              />
               {isRoomMembersLoading || isRoomPresenceLoading ? (
                 <Typography color="text.secondary">
                   Loading members...
@@ -438,38 +699,46 @@ export function Room() {
                   {members.map((member) => (
                     <Stack
                       key={member.id}
-                      direction="row"
-                      alignItems="center"
+                      direction={{ xs: "column", sm: "row" }}
+                      alignItems={{ xs: "flex-start", sm: "center" }}
                       gap={1.5}
                       justifyContent="space-between"
-                      py={1}
+                      py={1.25}
                     >
                       <Stack direction="row" alignItems="center" gap={1.5}>
-                        <Avatar>{member.name.slice(0, 1).toUpperCase()}</Avatar>
+                        <Badge
+                          overlap="circular"
+                          variant="dot"
+                          invisible={!member.isActive}
+                          anchorOrigin={{
+                            vertical: "bottom",
+                            horizontal: "right",
+                          }}
+                          sx={{
+                            "& .MuiBadge-badge": {
+                              backgroundColor: "success.main",
+                              boxShadow: (theme) =>
+                                `0 0 0 2px ${theme.palette.background.paper}`,
+                            },
+                          }}
+                        >
+                          <Avatar>
+                            {member.name.slice(0, 1).toUpperCase()}
+                          </Avatar>
+                        </Badge>
                         <Stack>
-                          <Typography fontWeight={500}>
-                            {member.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {member.isOwner
-                              ? "Room owner"
-                              : member.isActive
-                                ? "In the room now"
-                                : "Recently active"}
-                          </Typography>
+                          <Stack direction="row" alignItems="center" gap={0.75}>
+                            <Typography fontWeight={500}>
+                              {member.name}
+                            </Typography>
+                            {member.isOwner ? (
+                              <CrownOutlinedIcon
+                                fontSize="small"
+                                sx={{ color: "info.main", fontSize: 18 }}
+                              />
+                            ) : null}
+                          </Stack>
                         </Stack>
-                      </Stack>
-                      <Stack direction="row" gap={1} flexWrap="wrap">
-                        {member.isActive ? (
-                          <Chip
-                            size="small"
-                            label="Active now"
-                            color="success"
-                          />
-                        ) : null}
-                        {member.isOwner ? (
-                          <Chip size="small" label="Owner" variant="outlined" />
-                        ) : null}
                       </Stack>
                     </Stack>
                   ))}
